@@ -13,9 +13,7 @@ export const Header: React.FC = () => {
       <div className="flex-1 w-full flex items-center justify-between max-w-7xl mx-auto">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-600 rounded-lg flex items-center justify-center font-black text-lg sm:text-xl italic">
-            LQ
-          </div>
+          <img src="/logo.png" alt="Laures Shop Logo" className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover" />
           <span className="text-xl sm:text-2xl font-black uppercase tracking-tighter italic hidden sm:block">
             Laures <span className="text-red-600">Shop</span>
           </span>
@@ -37,10 +35,6 @@ export const Header: React.FC = () => {
 
         {/* Actions */}
         <div className="flex items-center gap-4">
-          <button className="px-4 py-2 sm:px-5 sm:py-2 bg-red-600 hover:bg-red-700 font-bold rounded text-[10px] sm:text-sm uppercase tracking-wide hidden sm:block transition-colors">
-            Nạp Tiền
-          </button>
-          
           <Link to="/cart" className="relative p-2 text-gray-300 hover:text-white transition-colors">
             <ShoppingCart className="h-5 sm:h-6 w-5 sm:w-6" />
             {totalItems > 0 && (
