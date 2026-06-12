@@ -13,7 +13,7 @@ export const Header: React.FC = () => {
       <div className="flex-1 w-full flex items-center justify-between max-w-7xl mx-auto">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <img src="/laures.png" alt="Laures Shop Logo" className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover bg-white" />
+          <img src="/laures.jpg" alt="Laures Shop Logo" className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover bg-white" />
           <span className="text-xl sm:text-2xl font-black uppercase tracking-tighter italic hidden sm:block">
             Laures <span className="text-red-600">Shop</span>
           </span>
