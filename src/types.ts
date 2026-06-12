@@ -38,6 +38,6 @@ export interface CartItem {
   type: CartItemType;
   title: string;
   price: number;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 

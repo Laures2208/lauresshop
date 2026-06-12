@@ -10,7 +10,7 @@ export const Auth: React.FC = () => {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
-  const { login, registerUser } = useShop();
+  const { login, registerUser, showToast } = useShop();
   const navigate = useNavigate();
 
   const handleSubmit = (e: React.FormEvent) => {

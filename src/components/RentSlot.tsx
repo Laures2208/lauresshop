@@ -4,7 +4,7 @@ import { Clock, Gamepad2, ShoppingCart } from 'lucide-react';
 
 export const RentSlot: React.FC = () => {
   const [hours, setHours] = useState<number>(1);
-  const { addToCart, servicePrices } = useShop();
+  const { addToCart, servicePrices, showToast } = useShop();
 
   const PRICE_PER_HOUR = servicePrices.rentPerHour;
   const totalPrice = hours * PRICE_PER_HOUR;

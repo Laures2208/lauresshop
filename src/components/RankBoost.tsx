@@ -9,7 +9,7 @@ export const RankBoost: React.FC = () => {
   const [boostType, setBoostType] = useState<BoostType>('BASIC');
   const [basicRank, setBasicRank] = useState('DONG'); // Dong, Bac, Vang, BachKim
   const [stars, setStars] = useState<number>(1);
-  const { addToCart, servicePrices } = useShop();
+  const { addToCart, servicePrices, showToast } = useShop();
 
   const getPrice = () => {
     switch (boostType) {
@@ -23,9 +23,10 @@ export const RankBoost: React.FC = () => {
 
   const getTitle = () => {
     switch (boostType) {
-      case 'BASIC': 
+      case 'BASIC': {
         const ranks: Record<string, string> = { DONG: 'Đồng', BAC: 'Bạc', VANG: 'Vàng', BACHKIM: 'Bạch Kim' };
         return `Cày rank: ${ranks[basicRank]} lên Cao Thủ`;
+      }
       case 'STAR': return `Cày rank: ${stars} sao (Cao Thủ trở lên)`;
       case 'COMBO1': return `Cày rank: Combo Đồng lên Chiến Tướng`;
       case 'COMBO2': return `Cày rank: Combo Cao Thủ lên Chiến Tướng`;

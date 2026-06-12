@@ -1,0 +1,76 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    
+    function incoming() {
+      return request.resource.data;
+    }
+    
+    function existing() {
+      return resource.data;
+    }
+    
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    
+    function isValidUser(data) {
+      return data.keys().hasAll(['username', 'email', 'balance', 'role']) &&
+             data.username is string && data.username.size() <= 100 &&
+             data.email is string && data.email.size() <= 100 &&
+             data.role is string &&
+             data.balance is number;
+    }
+
+    match /users/{userId} {
+      allow get: if isValidId(userId);
+      allow list: if true;
+      allow create: if isValidId(userId) && 
+                    isValidUser(incoming()) && 
+                    incoming().balance == 0 &&
+                    incoming().keys().hasOnly(['username', 'email', 'balance', 'phone', 'role']) &&
+                    (incoming().keys().hasAll(['phone']) ? (incoming().phone is string && incoming().phone.size() <= 20) : true);
+      allow update: if isValidId(userId) && 
+                    isValidUser(incoming()) &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['username', 'phone', 'balance']);
+    }
+
+    function isValidAccount(data) {
+      return data.keys().hasAll(['title', 'imageUrl', 'price', 'rank', 'gameUsername', 'gamePassword']) &&
+             data.title is string && data.title.size() <= 200 &&
+             data.imageUrl is string && data.imageUrl.size() <= 500 &&
+             data.price is number &&
+             data.rank is string && data.rank.size() <= 50 &&
+             data.gameUsername is string && data.gameUsername.size() <= 100 &&
+             data.gamePassword is string && data.gamePassword.size() <= 100;
+    }
+
+    match /accounts/{accountId} {
+      allow get: if isValidId(accountId);
+      allow list: if true;
+      allow create: if isValidId(accountId) && isValidAccount(incoming());
+      allow update: if isValidId(accountId) && isValidAccount(incoming());
+      allow delete: if isValidId(accountId);
+    }
+    
+    function isValidServicePrices(data) {
+      return data.keys().hasAll(['rentPerHour', 'boostBasic', 'boostStar', 'boostCombo1', 'boostCombo2']) &&
+             data.rentPerHour is number &&
+             data.boostBasic is number &&
+             data.boostStar is number &&
+             data.boostCombo1 is number &&
+             data.boostCombo2 is number &&
+             data.keys().hasOnly(['rentPerHour', 'boostBasic', 'boostStar', 'boostCombo1', 'boostCombo2']);
+    }
+
+    match /settings/prices {
+      allow read: if true;
+      allow create: if isValidServicePrices(incoming());
+      allow update: if isValidServicePrices(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['rentPerHour', 'boostBasic', 'boostStar', 'boostCombo1', 'boostCombo2']);
+    }
+  }
+}
+

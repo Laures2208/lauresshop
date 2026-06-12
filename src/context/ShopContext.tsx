@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AccountProduct, CartItem, ServicePrices } from '../types';
+import { db } from '../firebase';
+import { collection, onSnapshot, setDoc, doc, addDoc } from 'firebase/firestore';
 
 interface ShopContextType {
   user: User | null;
@@ -32,6 +34,8 @@ const INITIAL_ACCOUNTS: AccountProduct[] = [
     rank: 'Cao thủ',
     champions: 112,
     skins: 250,
+    gameUsername: 'kirito_pro',
+    gamePassword: 'password123',
   },
   {
     id: '2',
@@ -41,6 +45,8 @@ const INITIAL_ACCOUNTS: AccountProduct[] = [
     rank: 'Kim cương',
     champions: 80,
     skins: 120,
+    gameUsername: 'smurf_acc',
+    gamePassword: 'password123',
   },
 ];
 
@@ -60,44 +66,65 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [servicePrices, setServicePrices] = useState<ServicePrices>(DEFAULT_PRICES);
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
 
-  // Load from local storage
   useEffect(() => {
+    // Load local auth & cart
     const savedUser = localStorage.getItem('user');
     if (savedUser) setUser(JSON.parse(savedUser));
-    
-    const savedAccounts = localStorage.getItem('accounts');
-    if (savedAccounts) setAccounts(JSON.parse(savedAccounts));
     
     const savedCart = localStorage.getItem('cart');
     if (savedCart) setCart(JSON.parse(savedCart));
 
-    const savedUsers = localStorage.getItem('registeredUsers');
-    if (savedUsers) setRegisteredUsers(JSON.parse(savedUsers));
+    // Firebase realtime subscriptions
+    const unsubPrices = onSnapshot(doc(db, 'settings', 'prices'), (docSnap) => {
+      if (docSnap.exists()) {
+        setServicePrices(docSnap.data() as ServicePrices);
+      } else {
+        setDoc(doc(db, 'settings', 'prices'), DEFAULT_PRICES).catch(console.error);
+      }
+    }, (error) => {
+      console.error('Firestore Error prices:', error);
+    });
 
-    const savedPrices = localStorage.getItem('servicePrices');
-    if (savedPrices) setServicePrices(JSON.parse(savedPrices));
+    const unsubAccounts = onSnapshot(collection(db, 'accounts'), (snapshot) => {
+      const accs = snapshot.docs.map(accDoc => ({ id: accDoc.id, ...accDoc.data() } as AccountProduct));
+      if (accs.length > 0) {
+        setAccounts(accs);
+      } else {
+        // Seed initial accounts if empty
+        INITIAL_ACCOUNTS.forEach(acc => {
+          setDoc(doc(db, 'accounts', acc.id), acc).catch(console.error);
+        });
+        setAccounts(INITIAL_ACCOUNTS);
+      }
+    }, (error) => {
+      console.error('Firestore Error accounts:', error);
+    });
+
+    const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
+      const users = snapshot.docs.map(userDoc => ({ id: userDoc.id, ...userDoc.data() } as User));
+      setRegisteredUsers(users);
+    }, (error) => {
+      console.error('Firestore Error users:', error);
+    });
+
+    return () => {
+      unsubPrices();
+      unsubAccounts();
+      unsubUsers();
+    };
   }, []);
 
-  // Save to local storage
   useEffect(() => {
-    localStorage.setItem('user', JSON.stringify(user));
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('user');
+    }
   }, [user]);
-
-  useEffect(() => {
-    localStorage.setItem('accounts', JSON.stringify(accounts));
-  }, [accounts]);
 
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(cart));
   }, [cart]);
-
-  useEffect(() => {
-    localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
-  }, [registeredUsers]);
-
-  useEffect(() => {
-    localStorage.setItem('servicePrices', JSON.stringify(servicePrices));
-  }, [servicePrices]);
 
   const login = (username: string, password?: string) => {
     if (username === 'Laures2208' && password === 'THPA29122008') {
@@ -114,15 +141,24 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return false;
   };
 
-  const registerUser = (userData: Omit<User, 'id' | 'role' | 'balance'>) => {
-    const newUser: User = {
-      ...userData,
-      id: Math.random().toString(),
-      role: 'USER',
-      balance: 0,
-    };
-    setRegisteredUsers(prev => [...prev, newUser]);
-    setUser(newUser);
+  const registerUser = async (userData: Omit<User, 'id' | 'role' | 'balance'>) => {
+    try {
+      const docRef = await addDoc(collection(db, 'users'), {
+        ...userData,
+        role: 'USER',
+        balance: 0,
+      });
+      const newUser: User = {
+        id: docRef.id,
+        ...userData,
+        role: 'USER',
+        balance: 0,
+      };
+      setUser(newUser);
+    } catch(err) {
+      console.error(err);
+      showToast('Có lỗi xảy ra khi tạo tài khoản', 'error');
+    }
   };
 
   const logout = () => {
@@ -130,9 +166,14 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCart([]);
   };
 
-  const addAccount = (acc: Omit<AccountProduct, 'id'>) => {
-    const newAcc: AccountProduct = { ...acc, id: Math.random().toString() };
-    setAccounts((prev) => [...prev, newAcc]);
+  const addAccount = async (acc: Omit<AccountProduct, 'id'>) => {
+    try {
+      await addDoc(collection(db, 'accounts'), acc);
+      showToast('Đăng sản phẩm thành công');
+    } catch(err) {
+      console.error('Error adding document: ', err);
+      showToast('Không thể thêm sản phẩm, vui lòng thử lại', 'error');
+    }
   };
 
   const addToCart = (item: Omit<CartItem, 'id'>) => {
@@ -148,8 +189,14 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCart([]);
   };
 
-  const updateServicePrices = (prices: ServicePrices) => {
-    setServicePrices(prices);
+  const updateServicePrices = async (prices: ServicePrices) => {
+    try {
+      await setDoc(doc(db, 'settings', 'prices'), prices);
+      showToast('Cập nhật bảng giá thành công!');
+    } catch(err) {
+      console.error(err);
+      showToast('Có lỗi khi cập nhật bảng giá', 'error');
+    }
   };
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
@@ -177,3 +224,4 @@ export const useShop = () => {
   }
   return context;
 };
+

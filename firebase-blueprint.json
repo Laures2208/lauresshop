@@ -1,0 +1,74 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "username": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "balance": { "type": "number" }
+      },
+      "required": ["username", "email", "balance"]
+    },
+    "Account": {
+      "title": "Account",
+      "description": "Game account product",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "price": { "type": "number" },
+        "originalPrice": { "type": "number" },
+        "discountPercentage": { "type": "number" },
+        "rank": { "type": "string" },
+        "champions": { "type": "number" },
+        "skins": { "type": "number" },
+        "gameUsername": { "type": "string" },
+        "gamePassword": { "type": "string" }
+      },
+      "required": ["title", "imageUrl", "price", "rank", "gameUsername", "gamePassword"]
+    },
+    "ServicePrices": {
+      "title": "ServicePrices",
+      "description": "Prices for store services",
+      "type": "object",
+      "properties": {
+        "rentPerHour": { "type": "number" },
+        "boostBasic": { "type": "number" },
+        "boostStar": { "type": "number" },
+        "boostCombo1": { "type": "number" },
+        "boostCombo2": { "type": "number" }
+      },
+      "required": ["rentPerHour", "boostBasic", "boostStar", "boostCombo1", "boostCombo2"]
+    },
+    "AdminConfig": {
+      "title": "AdminConfig",
+      "description": "Identifies an admin",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" }
+      },
+      "required": ["userId"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "accounts/{accountId}": {
+      "schema": "Account",
+      "description": "Available game accounts"
+    },
+    "settings/prices": {
+      "schema": "ServicePrices",
+      "description": "Global service prices"
+    },
+    "admins/{userId}": {
+      "schema": "AdminConfig",
+      "description": "List of admin users"
+    }
+  }
+}

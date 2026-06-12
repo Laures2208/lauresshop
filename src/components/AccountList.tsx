@@ -1,10 +1,10 @@
 import React from 'react';
 import { useShop } from '../context/ShopContext';
-import { ShoppingCart, Star, Shield, Search } from 'lucide-react';
+import { Star, Shield } from 'lucide-react';
 import { AccountProduct } from '../types';
 
 export const AccountList: React.FC = () => {
-  const { accounts, addToCart } = useShop();
+  const { accounts, addToCart, showToast } = useShop();
 
   const handleAddToCart = (acc: AccountProduct) => {
     addToCart({
