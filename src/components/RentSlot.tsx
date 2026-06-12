@@ -16,7 +16,7 @@ export const RentSlot: React.FC = () => {
       price: totalPrice,
       details: { hours }
     });
-    alert('Đã thêm slot thuê vào giỏ hàng');
+    showToast('Đã thêm slot thuê vào giỏ hàng');
   };
 
   return (

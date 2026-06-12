@@ -21,14 +21,15 @@ export const Auth: React.FC = () => {
       if (login(username, password)) {
         navigate(username === 'Laures2208' ? '/admin' : '/');
       } else {
-        alert("Tài khoản hoặc mật khẩu không đúng.");
+        showToast("Tài khoản hoặc mật khẩu không đúng.", 'error');
       }
     } else {
       if (!agreeTerms) {
-        alert("Bạn cần đồng ý với điều khoản sử dụng.");
+        showToast("Bạn cần đồng ý với điều khoản sử dụng.", 'error');
         return;
       }
       registerUser({ username, email, phone });
+      showToast("Đăng ký tài khoản thành công!");
       navigate('/');
     }
   };

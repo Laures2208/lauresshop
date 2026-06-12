@@ -4,7 +4,7 @@ import { Trash2, CreditCard, Smartphone, CheckCircle, ArrowRight } from 'lucide-
 import { useNavigate } from 'react-router';
 
 export const Cart: React.FC = () => {
-  const { cart, removeFromCart, clearCart, user } = useShop();
+  const { cart, removeFromCart, clearCart, user, showToast } = useShop();
   const [showCheckout, setShowCheckout] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'QR' | 'CARD'>('QR');
   const [isSuccess, setIsSuccess] = useState(false);
@@ -14,7 +14,7 @@ export const Cart: React.FC = () => {
 
   const handleCheckout = () => {
     if (!user) {
-      alert('Vui lòng đăng nhập để thanh toán');
+      showToast('Vui lòng đăng nhập để thanh toán', 'error');
       navigate('/auth');
       return;
     }

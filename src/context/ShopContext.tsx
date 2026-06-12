@@ -15,6 +15,8 @@ interface ShopContextType {
   registeredUsers: User[];
   servicePrices: ServicePrices;
   updateServicePrices: (prices: ServicePrices) => void;
+  toast: { message: string, type: 'success' | 'error' } | null;
+  showToast: (message: string, type?: 'success' | 'error') => void;
 }
 
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
@@ -56,6 +58,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [cart, setCart] = useState<CartItem[]>([]);
   const [registeredUsers, setRegisteredUsers] = useState<User[]>([]);
   const [servicePrices, setServicePrices] = useState<ServicePrices>(DEFAULT_PRICES);
+  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
 
   // Load from local storage
   useEffect(() => {
@@ -149,12 +152,18 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setServicePrices(prices);
   };
 
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
   return (
     <ShopContext.Provider value={{
       user, login, registerUser, logout,
       accounts, addAccount,
       cart, addToCart, removeFromCart, clearCart,
-      registeredUsers, servicePrices, updateServicePrices
+      registeredUsers, servicePrices, updateServicePrices,
+      toast, showToast
     }}>
       {children}
     </ShopContext.Provider>

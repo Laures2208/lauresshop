@@ -13,7 +13,7 @@ export const AccountList: React.FC = () => {
       price: acc.price,
       details: { accountId: acc.id }
     });
-    alert(`Đã thêm ${acc.title} vào giỏ hàng`); // Simple feedback, could use toast in a real app
+    showToast(`Đã thêm ${acc.title} vào giỏ hàng`);
   };
 
   return (

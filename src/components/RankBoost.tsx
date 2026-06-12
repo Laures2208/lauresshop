@@ -39,7 +39,7 @@ export const RankBoost: React.FC = () => {
       price: getPrice(),
       details: { boostType, basicRank, stars }
     });
-    alert('Đã thêm dịch vụ cày thuê vào giỏ hàng');
+    showToast('Đã thêm dịch vụ cày thuê vào giỏ hàng');
   };
 
   return (

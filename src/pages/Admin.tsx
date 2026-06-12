@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router';
 import { ShieldCheck, PlusCircle, Image as ImageIcon, Users, Settings } from 'lucide-react';
 
 export const Admin: React.FC = () => {
-  const { user, addAccount, registeredUsers, servicePrices, updateServicePrices } = useShop();
+  const { user, addAccount, registeredUsers, servicePrices, updateServicePrices, showToast } = useShop();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'ACCOUNTS' | 'USERS' | 'SETTINGS'>('ACCOUNTS');
 
@@ -72,7 +72,7 @@ export const Admin: React.FC = () => {
       gamePassword: formData.gamePassword,
     });
 
-    alert('Đăng sản phẩm thành công!');
+    showToast('Đăng sản phẩm thành công!');
     setFormData({
       title: '', imageUrl: '', price: '', originalPrice: '', discountPercentage: '', rank: 'Cao Thủ', champions: '', skins: '', gameUsername: '', gamePassword: ''
     });
@@ -87,7 +87,7 @@ export const Admin: React.FC = () => {
       boostCombo1: parseInt(pricesData.boostCombo1) || 0,
       boostCombo2: parseInt(pricesData.boostCombo2) || 0,
     });
-    alert('Cập nhật bảng giá thành công!');
+    showToast('Cập nhật bảng giá thành công!');
   };
 
   return (
