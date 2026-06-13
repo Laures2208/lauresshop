@@ -125,7 +125,14 @@ export const Admin: React.FC = () => {
             <button onClick={() => setActiveTab('ACCOUNTS')} className={`px-4 py-2 text-xs font-bold uppercase rounded-lg transition-colors ${activeTab === 'ACCOUNTS' ? 'bg-red-600 text-white' : 'bg-[#1f1f1f] text-gray-400 hover:text-white'}`}>Tài Khoản Game</button>
             <button onClick={() => setActiveTab('SETTINGS')} className={`px-4 py-2 text-xs font-bold uppercase rounded-lg transition-colors ${activeTab === 'SETTINGS' ? 'bg-red-600 text-white' : 'bg-[#1f1f1f] text-gray-400 hover:text-white'}`}>Cấu Hình Giá</button>
             <button onClick={() => setActiveTab('USERS')} className={`px-4 py-2 text-xs font-bold uppercase rounded-lg transition-colors ${activeTab === 'USERS' ? 'bg-red-600 text-white' : 'bg-[#1f1f1f] text-gray-400 hover:text-white'}`}>Khách Hàng</button>
-            <button onClick={() => setActiveTab('ORDERS')} className={`px-4 py-2 text-xs font-bold uppercase rounded-lg transition-colors ${activeTab === 'ORDERS' ? 'bg-red-600 text-white' : 'bg-[#1f1f1f] text-gray-400 hover:text-white'}`}>Đơn Hàng</button>
+            <button onClick={() => setActiveTab('ORDERS')} className={`relative px-4 py-2 text-xs font-bold uppercase rounded-lg transition-colors ${activeTab === 'ORDERS' ? 'bg-red-600 text-white' : 'bg-[#1f1f1f] text-gray-400 hover:text-white'}`}>
+              Đơn Hàng
+              {orders.filter(o => o.status === 'PENDING').length > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-black animate-pulse">
+                  {orders.filter(o => o.status === 'PENDING').length}
+                </span>
+              )}
+            </button>
           </div>
         </div>
 
