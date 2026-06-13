@@ -3,15 +3,44 @@ import path from 'path';
 import fs from 'fs';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, doc, updateDoc, getDoc, setDoc } from 'firebase/firestore';
-import firebaseConfig from '../firebase-applet-config.json';
 
 const app = express();
 app.use(express.json());
 
+// Load Firebase configuration dynamically to prevent Node ESM load-time import crashes on Vercel
+let firebaseConfig: any = null;
+try {
+  const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
+  if (fs.existsSync(configPath)) {
+    firebaseConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+  } else {
+    const parentConfigPath = path.join(process.cwd(), '..', 'firebase-applet-config.json');
+    if (fs.existsSync(parentConfigPath)) {
+      firebaseConfig = JSON.parse(fs.readFileSync(parentConfigPath, 'utf-8'));
+    }
+  }
+} catch (e) {
+  console.error('[Vercel API] Error reading config file from disk, using fallback static credentials:', e);
+}
+
+// Resilient fallback using the exact project's firebase applet credentials
+if (!firebaseConfig) {
+  firebaseConfig = {
+    "projectId": "celtic-mystery-89pl1",
+    "appId": "1:465768180437:web:4f94f6915f2d1415f1905c",
+    "apiKey": "AIzaSyCciWWvtEJ1lMCn-c7y7LoEouMoH7UVYLQ",
+    "authDomain": "celtic-mystery-89pl1.firebaseapp.com",
+    "firestoreDatabaseId": "ai-studio-30b33e7b-9d13-4d8d-b432-fa761175e004",
+    "storageBucket": "celtic-mystery-89pl1.firebasestorage.app",
+    "messagingSenderId": "465768180437",
+    "measurementId": ""
+  };
+}
+
 // Handler helper to initialize firebase and get firestore db instance
 function getDb() {
   if (!firebaseConfig) {
-    throw new Error('Firebase configuration could not be loaded. Please ensure firebase-applet-config.json is present in the workspace.');
+    throw new Error('Firebase configuration could not be loaded.');
   }
   const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
   return getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
