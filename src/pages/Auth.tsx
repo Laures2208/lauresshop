@@ -13,7 +13,7 @@ export const Auth: React.FC = () => {
   const { login, registerUser, showToast } = useShop();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username || !password) return;
     
@@ -28,9 +28,10 @@ export const Auth: React.FC = () => {
         showToast("Bạn cần đồng ý với điều khoản sử dụng.", 'error');
         return;
       }
-      registerUser({ username, email, phone });
-      showToast("Đăng ký tài khoản thành công!");
-      navigate('/');
+      const success = await registerUser({ username, email, phone, password });
+      if (success) {
+        navigate('/');
+      }
     }
   };
 

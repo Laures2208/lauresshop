@@ -14,15 +14,17 @@ service cloud.firestore {
     }
     
     function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-\\.]+$');
     }
     
     function isValidUser(data) {
-      return data.keys().hasAll(['username', 'email', 'balance', 'role']) &&
+      return data.keys().hasAll(['username', 'balance', 'role']) &&
              data.username is string && data.username.size() <= 100 &&
-             data.email is string && data.email.size() <= 100 &&
              data.role is string &&
-             data.balance is number;
+             data.balance is number &&
+             (data.keys().hasAll(['email']) ? (data.email is string && data.email.size() <= 100) : true) &&
+             (data.keys().hasAll(['phone']) ? (data.phone is string && data.phone.size() <= 20) : true) &&
+             (data.keys().hasAll(['password']) ? (data.password is string && data.password.size() <= 100) : true);
     }
 
     match /users/{userId} {
@@ -31,11 +33,11 @@ service cloud.firestore {
       allow create: if isValidId(userId) && 
                     isValidUser(incoming()) && 
                     incoming().balance == 0 &&
-                    incoming().keys().hasOnly(['username', 'email', 'balance', 'phone', 'role']) &&
-                    (incoming().keys().hasAll(['phone']) ? (incoming().phone is string && incoming().phone.size() <= 20) : true);
+                    incoming().keys().hasOnly(['username', 'email', 'balance', 'phone', 'role', 'password']);
       allow update: if isValidId(userId) && 
                     isValidUser(incoming()) &&
-                    incoming().diff(existing()).affectedKeys().hasOnly(['username', 'phone', 'balance']);
+                    incoming().diff(existing()).affectedKeys().hasOnly(['username', 'email', 'phone', 'balance', 'password']);
+      allow delete: if isValidId(userId);
     }
 
     function isValidAccount(data) {
@@ -54,6 +56,25 @@ service cloud.firestore {
       allow create: if isValidId(accountId) && isValidAccount(incoming());
       allow update: if isValidId(accountId) && isValidAccount(incoming());
       allow delete: if isValidId(accountId);
+    }
+    
+    function isValidOrder(data) {
+      return data.keys().hasAll(['userId', 'items', 'totalAmount', 'status', 'createdAt', 'paymentMethod']) &&
+             data.userId is string && data.userId.size() <= 128 &&
+             data.items is list &&
+             data.totalAmount is number &&
+             data.status is string &&
+             data.createdAt is number &&
+             data.paymentMethod is string &&
+             (!data.keys().hasAll(['zaloPhone']) || (data.zaloPhone is string && data.zaloPhone.size() <= 50));
+    }
+
+    match /orders/{orderId} {
+      allow get: if isValidId(orderId);
+      allow list: if true;
+      allow create: if isValidId(orderId) && isValidOrder(incoming());
+      allow update: if isValidId(orderId) && isValidOrder(incoming());
+      allow delete: if isValidId(orderId);
     }
     
     function isValidServicePrices(data) {

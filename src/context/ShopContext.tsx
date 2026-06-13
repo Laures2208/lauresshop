@@ -1,12 +1,47 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, AccountProduct, CartItem, ServicePrices } from '../types';
+import { User, AccountProduct, CartItem, ServicePrices, Order } from '../types';
 import { db } from '../firebase';
 import { collection, onSnapshot, setDoc, doc, addDoc } from 'firebase/firestore';
+
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+  }
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: null,
+      email: null,
+      emailVerified: null,
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
 
 interface ShopContextType {
   user: User | null;
   login: (username: string, password?: string) => boolean;
-  registerUser: (user: Omit<User, 'id' | 'role' | 'balance'>) => void;
+  registerUser: (user: Omit<User, 'id' | 'role' | 'balance'>) => Promise<boolean>;
   logout: () => void;
   accounts: AccountProduct[];
   addAccount: (acc: Omit<AccountProduct, 'id'>) => void;
@@ -14,6 +49,10 @@ interface ShopContextType {
   addToCart: (item: Omit<CartItem, 'id'>) => void;
   removeFromCart: (id: string) => void;
   clearCart: () => void;
+  placeOrder: (paymentMethod: 'QR' | 'CARD', customOrderId?: string) => Promise<boolean>;
+  orders: Order[];
+  deleteUser: (id: string) => void;
+  updateUser: (id: string, data: Partial<User>) => Promise<boolean>;
   registeredUsers: User[];
   servicePrices: ServicePrices;
   updateServicePrices: (prices: ServicePrices) => void;
@@ -62,9 +101,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [accounts, setAccounts] = useState<AccountProduct[]>(INITIAL_ACCOUNTS);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [registeredUsers, setRegisteredUsers] = useState<User[]>([]);
   const [servicePrices, setServicePrices] = useState<ServicePrices>(DEFAULT_PRICES);
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
+  const [usersLoaded, setUsersLoaded] = useState<boolean>(false);
 
   useEffect(() => {
     // Load local auth & cart
@@ -82,7 +123,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setDoc(doc(db, 'settings', 'prices'), DEFAULT_PRICES).catch(console.error);
       }
     }, (error) => {
-      console.error('Firestore Error prices:', error);
+      handleFirestoreError(error, OperationType.GET, 'settings/prices');
     });
 
     const unsubAccounts = onSnapshot(collection(db, 'accounts'), (snapshot) => {
@@ -97,20 +138,29 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setAccounts(INITIAL_ACCOUNTS);
       }
     }, (error) => {
-      console.error('Firestore Error accounts:', error);
+      handleFirestoreError(error, OperationType.LIST, 'accounts');
     });
 
     const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
       const users = snapshot.docs.map(userDoc => ({ id: userDoc.id, ...userDoc.data() } as User));
       setRegisteredUsers(users);
+      setUsersLoaded(true);
     }, (error) => {
-      console.error('Firestore Error users:', error);
+      handleFirestoreError(error, OperationType.LIST, 'users');
+    });
+
+    const unsubOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
+      const ords = snapshot.docs.map(ordDoc => ({ id: ordDoc.id, ...ordDoc.data() } as Order));
+      setOrders(ords);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'orders');
     });
 
     return () => {
       unsubPrices();
       unsubAccounts();
       unsubUsers();
+      unsubOrders();
     };
   }, []);
 
@@ -126,14 +176,25 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('cart', JSON.stringify(cart));
   }, [cart]);
 
+  useEffect(() => {
+    if (user && user.role !== 'ADMIN' && usersLoaded) {
+      const stillExists = registeredUsers.some(u => u.id === user.id);
+      if (!stillExists) {
+        logout();
+        showToast('Tài khoản của bạn đã bị xóa khỏi hệ thống!', 'error');
+      }
+    }
+  }, [user, registeredUsers, usersLoaded]);
+
   const login = (username: string, password?: string) => {
     if (username === 'Laures2208' && password === 'THPA29122008') {
-      setUser({ id: 'admin', username: 'Laures2208', role: 'ADMIN', balance: 0 });
+      const adminUser: User = { id: 'admin', username: 'Laures2208', role: 'ADMIN', balance: 0 };
+      setUser(adminUser);
       return true;
     }
 
     const existingUser = registeredUsers.find(u => u.username === username);
-    if (existingUser) {
+    if (existingUser && existingUser.password === password) {
       setUser(existingUser);
       return true;
     }
@@ -142,6 +203,22 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const registerUser = async (userData: Omit<User, 'id' | 'role' | 'balance'>) => {
+    // Kiếm tra trùng lặp thông tin
+    for (const u of registeredUsers) {
+      if (u.username === userData.username) {
+        showToast('Tên đăng nhập đã được sử dụng', 'error');
+        return false;
+      }
+      if (userData.email && u.email === userData.email) {
+         showToast('Email đã được sử dụng', 'error');
+         return false;
+      }
+      if (userData.phone && u.phone === userData.phone) {
+         showToast('Số điện thoại đã được sử dụng', 'error');
+         return false;
+      }
+    }
+
     try {
       const docRef = await addDoc(collection(db, 'users'), {
         ...userData,
@@ -155,9 +232,48 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         balance: 0,
       };
       setUser(newUser);
+      showToast('Đăng ký tài khoản thành công!');
+      return true;
     } catch(err) {
       console.error(err);
       showToast('Có lỗi xảy ra khi tạo tài khoản', 'error');
+      handleFirestoreError(err, OperationType.CREATE, 'users');
+      return false;
+    }
+  };
+
+  const updateUser = async (userId: string, data: Partial<User>) => {
+    try {
+      const { id, role, ...updateData } = data;
+      await setDoc(doc(db, 'users', userId), updateData, { merge: true });
+      showToast('Cập nhật tài khoản thành công!');
+      return true;
+    } catch(err) {
+      console.error(err);
+      showToast('Có lỗi xảy ra khi cập nhật', 'error');
+      handleFirestoreError(err, OperationType.UPDATE, `users/${userId}`);
+      return false;
+    }
+  };
+
+  const deleteUser = async (userId: string) => {
+    try {
+      const { deleteDoc, collection, query, where, getDocs } = await import('firebase/firestore');
+      
+      // Xoá tài khoản người dùng
+      await deleteDoc(doc(db, 'users', userId));
+
+      // Xoá toàn bộ lịch sử đơn hàng (dự liệu mua hàng) của tài khoản bị xoá
+      const q = query(collection(db, 'orders'), where('userId', '==', userId));
+      const querySnapshot = await getDocs(q);
+      const deletePromises = querySnapshot.docs.map(docSnap => deleteDoc(docSnap.ref));
+      await Promise.all(deletePromises);
+
+      showToast('Đã xoá tài khoản và toàn bộ lịch sử mua hàng!');
+    } catch(err) {
+      console.error(err);
+      showToast('Có lỗi xảy ra khi xoá', 'error');
+      handleFirestoreError(err, OperationType.DELETE, `users/${userId}`);
     }
   };
 
@@ -189,6 +305,36 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCart([]);
   };
 
+  const placeOrder = async (paymentMethod: 'QR' | 'CARD', customOrderId?: string) => {
+    if (!user) return false;
+    if (cart.length === 0) return false;
+
+    const totalAmount = cart.reduce((sum, item) => sum + item.price, 0);
+    const newOrder: Omit<Order, 'id'> = {
+      userId: user.id,
+      items: cart,
+      totalAmount,
+      status: 'PENDING',
+      createdAt: Date.now(),
+      paymentMethod
+    };
+
+    try {
+      if (customOrderId) {
+        await setDoc(doc(db, 'orders', customOrderId), newOrder);
+      } else {
+        await addDoc(collection(db, 'orders'), newOrder);
+      }
+      clearCart();
+      return true;
+    } catch (err) {
+      console.error(err);
+      showToast('Có lỗi xảy ra khi tạo đơn hàng', 'error');
+      handleFirestoreError(err, OperationType.CREATE, customOrderId ? `orders/${customOrderId}` : 'orders');
+      return false;
+    }
+  };
+
   const updateServicePrices = async (prices: ServicePrices) => {
     try {
       await setDoc(doc(db, 'settings', 'prices'), prices);
@@ -209,6 +355,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       user, login, registerUser, logout,
       accounts, addAccount,
       cart, addToCart, removeFromCart, clearCart,
+      placeOrder, orders,
+      updateUser, deleteUser,
       registeredUsers, servicePrices, updateServicePrices,
       toast, showToast
     }}>

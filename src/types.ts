@@ -3,6 +3,7 @@ export type UserRole = 'USER' | 'ADMIN';
 export interface User {
   id: string;
   username: string;
+  password?: string;
   role: UserRole;
   balance: number;
   email?: string;
@@ -39,5 +40,18 @@ export interface CartItem {
   title: string;
   price: number;
   details?: Record<string, unknown>;
+}
+
+export type OrderStatus = 'PENDING' | 'COMPLETED' | 'CANCELLED';
+
+export interface Order {
+  id: string;
+  userId: string;
+  items: CartItem[];
+  totalAmount: number;
+  status: OrderStatus;
+  createdAt: number;
+  paymentMethod: 'QR' | 'CARD';
+  zaloPhone?: string;
 }
 

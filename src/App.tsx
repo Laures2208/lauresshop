@@ -11,6 +11,7 @@ import { Home } from './pages/Home';
 import { Auth } from './pages/Auth';
 import { Cart } from './pages/Cart';
 import { Admin } from './pages/Admin';
+import { Profile } from './pages/Profile';
 
 const ToastManager = () => {
   const { toast } = useShop();
@@ -39,6 +40,7 @@ export default function App() {
             <Route path="/auth" element={<Auth />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/profile" element={<Profile />} />
           </Routes>
           <ToastManager />
         </div>

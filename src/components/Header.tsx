@@ -46,7 +46,7 @@ export const Header: React.FC = () => {
 
           {user ? (
             <div className="flex items-center gap-3">
-              <Link to={user.role === 'ADMIN' ? '/admin' : '/'} className="flex items-center gap-2 text-sm font-medium hover:text-red-400 transition-colors">
+              <Link to={user.role === 'ADMIN' ? '/admin' : '/profile'} className="flex items-center gap-2 text-sm font-medium hover:text-red-400 transition-colors">
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-700 flex items-center justify-center border border-gray-600 overflow-hidden">
                   <UserIcon className="h-4 sm:h-5 w-4 sm:w-5 text-gray-300" />
                 </div>

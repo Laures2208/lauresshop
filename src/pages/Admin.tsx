@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useShop } from '../context/ShopContext';
 import { useNavigate } from 'react-router';
-import { ShieldCheck, PlusCircle, Image as ImageIcon, Users, Settings } from 'lucide-react';
+import { ShieldCheck, PlusCircle, Image as ImageIcon, Users, Settings, Edit, Trash2 } from 'lucide-react';
+import { User } from '../types';
+import { AdminOrders } from '../components/AdminOrders';
 
 export const Admin: React.FC = () => {
-  const { user, addAccount, registeredUsers, servicePrices, updateServicePrices, showToast } = useShop();
+  const { user, addAccount, registeredUsers, servicePrices, updateServicePrices, showToast, deleteUser, updateUser, orders } = useShop();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'ACCOUNTS' | 'USERS' | 'SETTINGS'>('ACCOUNTS');
+  const [activeTab, setActiveTab] = useState<'ACCOUNTS' | 'USERS' | 'SETTINGS' | 'ORDERS'>('ACCOUNTS');
 
   const [formData, setFormData] = useState({
     title: '',
@@ -28,6 +30,9 @@ export const Admin: React.FC = () => {
     boostCombo1: servicePrices.boostCombo1.toString(),
     boostCombo2: servicePrices.boostCombo2.toString(),
   });
+
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [userFormData, setUserFormData] = useState<Partial<User>>({});
 
   if (!user || user.role !== 'ADMIN') {
     return (
@@ -102,6 +107,7 @@ export const Admin: React.FC = () => {
             <button onClick={() => setActiveTab('ACCOUNTS')} className={`px-4 py-2 text-xs font-bold uppercase rounded-lg transition-colors ${activeTab === 'ACCOUNTS' ? 'bg-red-600 text-white' : 'bg-[#1f1f1f] text-gray-400 hover:text-white'}`}>Tài Khoản Game</button>
             <button onClick={() => setActiveTab('SETTINGS')} className={`px-4 py-2 text-xs font-bold uppercase rounded-lg transition-colors ${activeTab === 'SETTINGS' ? 'bg-red-600 text-white' : 'bg-[#1f1f1f] text-gray-400 hover:text-white'}`}>Cấu Hình Giá</button>
             <button onClick={() => setActiveTab('USERS')} className={`px-4 py-2 text-xs font-bold uppercase rounded-lg transition-colors ${activeTab === 'USERS' ? 'bg-red-600 text-white' : 'bg-[#1f1f1f] text-gray-400 hover:text-white'}`}>Khách Hàng</button>
+            <button onClick={() => setActiveTab('ORDERS')} className={`px-4 py-2 text-xs font-bold uppercase rounded-lg transition-colors ${activeTab === 'ORDERS' ? 'bg-red-600 text-white' : 'bg-[#1f1f1f] text-gray-400 hover:text-white'}`}>Đơn Hàng</button>
           </div>
         </div>
 
@@ -324,7 +330,7 @@ export const Admin: React.FC = () => {
           </div>
         )}
 
-        {activeTab === 'USERS' && (
+        {activeTab === 'USERS' && !editingUser && (
           <div className="bg-[#141414] border border-gray-800 rounded-2xl overflow-hidden shadow-2xl">
             <div className="p-6 bg-[#0a0a0a] border-b border-gray-800">
               <h2 className="text-xl font-black text-white flex items-center gap-2 uppercase tracking-wide">
@@ -339,20 +345,42 @@ export const Admin: React.FC = () => {
                     <th className="p-4">Username</th>
                     <th className="p-4">Email</th>
                     <th className="p-4">SĐT</th>
+                    <th className="p-4 text-right">Thao Tác</th>
                   </tr>
                 </thead>
                 <tbody>
                   {registeredUsers.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="p-8 text-center text-gray-500">Chưa có khách hàng nào đăng ký.</td>
+                      <td colSpan={5} className="p-8 text-center text-gray-500">Chưa có khách hàng nào đăng ký.</td>
                     </tr>
                   ) : (
                     registeredUsers.map(u => (
                       <tr key={u.id} className="border-b border-gray-800 hover:bg-[#0a0a0a] transition-colors text-sm">
                         <td className="p-4 font-mono text-gray-500 text-xs">{u.id.substring(0, 8)}</td>
                         <td className="p-4 font-bold text-white">{u.username}</td>
-                        <td className="p-4 text-gray-400">{u.email}</td>
-                        <td className="p-4 text-gray-400">{u.phone}</td>
+                        <td className="p-4 text-gray-400">{u.email || 'N/A'}</td>
+                        <td className="p-4 text-gray-400">{u.phone || 'N/A'}</td>
+                        <td className="p-4 text-right">
+                          <button 
+                            onClick={() => {
+                              setEditingUser(u);
+                              setUserFormData(u);
+                            }}
+                            className="p-2 text-gray-400 hover:text-white transition-colors"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => {
+                              if (window.confirm(`Bạn muốn xoá tài khoản ${u.username}?`)) {
+                                deleteUser(u.id);
+                              }
+                            }}
+                            className="p-2 text-red-500 hover:text-red-400 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
                       </tr>
                     ))
                   )}
@@ -360,6 +388,116 @@ export const Admin: React.FC = () => {
               </table>
             </div>
           </div>
+        )}
+
+        {activeTab === 'USERS' && editingUser && (
+          <div className="bg-[#141414] border border-gray-800 rounded-2xl overflow-hidden shadow-2xl">
+            <div className="p-6 bg-[#0a0a0a] border-b border-gray-800 flex justify-between items-center">
+              <h2 className="text-xl font-black text-white flex items-center gap-2 uppercase tracking-wide">
+                <Settings className="w-5 h-5 text-red-600" /> Cập nhật người dùng: {editingUser.username}
+              </h2>
+              <button 
+                onClick={() => { setEditingUser(null); setUserFormData({}); }}
+                className="text-gray-400 hover:text-white text-sm font-bold uppercase tracking-widest"
+              >
+                Quay Lại
+              </button>
+            </div>
+            <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div>
+                <form 
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    await updateUser(editingUser.id, userFormData);
+                    setEditingUser({ ...editingUser, ...userFormData });
+                  }}
+                  className="space-y-4"
+                >
+                  <h3 className="text-sm font-bold text-red-500 uppercase tracking-widest mb-4">Thông Tin Chọn Lọc</h3>
+                  
+                  <div>
+                    <label className="block text-xs font-black uppercase text-gray-500 mb-2 tracking-widest">Username</label>
+                    <input 
+                      type="text" 
+                      value={userFormData.username || ''}
+                      onChange={(e) => setUserFormData({...userFormData, username: e.target.value})}
+                      className="w-full bg-[#1f1f1f] border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black uppercase text-gray-500 mb-2 tracking-widest">Mật Khẩu</label>
+                    <input 
+                      type="text" 
+                      value={userFormData.password || ''}
+                      onChange={(e) => setUserFormData({...userFormData, password: e.target.value})}
+                      className="w-full bg-[#1f1f1f] border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black uppercase text-gray-500 mb-2 tracking-widest">Email</label>
+                    <input 
+                      type="email" 
+                      value={userFormData.email || ''}
+                      onChange={(e) => setUserFormData({...userFormData, email: e.target.value})}
+                      className="w-full bg-[#1f1f1f] border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black uppercase text-gray-500 mb-2 tracking-widest">Số Điện Thoại</label>
+                    <input 
+                      type="text" 
+                      value={userFormData.phone || ''}
+                      onChange={(e) => setUserFormData({...userFormData, phone: e.target.value})}
+                      className="w-full bg-[#1f1f1f] border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black uppercase text-gray-500 mb-2 tracking-widest">Số Dư (VNĐ)</label>
+                    <input 
+                      type="number" 
+                      value={userFormData.balance || 0}
+                      onChange={(e) => setUserFormData({...userFormData, balance: parseInt(e.target.value) || 0})}
+                      className="w-full bg-[#1f1f1f] border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-600"
+                    />
+                  </div>
+                  <div className="pt-4">
+                    <button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white px-6 py-4 rounded-xl font-black uppercase tracking-widest transition-all">Lưu Thông Tin</button>
+                  </div>
+                </form>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-bold text-red-500 uppercase tracking-widest mb-4">Lịch Sử Mua Hàng</h3>
+                <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                  {orders.filter(o => o.userId === editingUser.id).length === 0 ? (
+                    <p className="text-gray-500 italic">Chưa có đơn hàng nào.</p>
+                  ) : (
+                    orders.filter(o => o.userId === editingUser.id).map(order => (
+                      <div key={order.id} className="bg-[#1f1f1f] border border-gray-800 rounded-xl p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="text-xs font-bold text-gray-400 uppercase">Mã: #{order.id.slice(0, 8)}</span>
+                          <span className="text-xs font-black text-red-500">{order.totalAmount.toLocaleString()}đ</span>
+                        </div>
+                        <div className="text-xs text-gray-500 mb-3">{new Date(order.createdAt).toLocaleString('vi-VN')}</div>
+                        <ul className="space-y-2">
+                          {order.items.map((item, idx) => (
+                            <li key={idx} className="flex justify-between text-xs border-t border-gray-800 pt-2">
+                              <span className="text-white">{item.title}</span>
+                              <span className="text-gray-400">{item.price.toLocaleString()}đ</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'ORDERS' && (
+          <AdminOrders />
         )}
       </div>
     </div>
