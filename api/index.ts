@@ -2,7 +2,7 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, doc, updateDoc, getDoc, setDoc } from 'firebase/firestore';
+import { getFirestore, doc, updateDoc, getDoc, setDoc } from 'firebase/firestore/lite';
 
 const app = express();
 app.use(express.json());
@@ -20,11 +20,11 @@ try {
     }
   }
 } catch (e) {
-  console.error('[Vercel API] Error reading config file from disk, using fallback static credentials:', e);
+  console.error('[Vercel API] Error reading config file from disk:', e);
 }
 
 // Resilient fallback using the exact project's firebase applet credentials
-if (!firebaseConfig) {
+if (!firebaseConfig || !firebaseConfig.apiKey || !firebaseConfig.projectId) {
   firebaseConfig = {
     "projectId": "celtic-mystery-89pl1",
     "appId": "1:465768180437:web:4f94f6915f2d1415f1905c",
@@ -52,7 +52,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // API Route 1: Mark order as PENDING / Paid (Khách hàng gọi khi bấm "Tôi đã chuyển khoản")
-app.put('/api/orders/:id/paid', async (req, res) => {
+app.put('/api/orders/:id/paid', async (req, res, next) => {
   const { id } = req.params;
   const orderData = req.body;
   try {
@@ -73,14 +73,13 @@ app.put('/api/orders/:id/paid', async (req, res) => {
       });
     }
     res.json({ success: true, message: 'Xác nhận đã chuyển khoản thành công! Khung thanh toán sẽ chuyển sang chờ duyệt.' });
-  } catch (err: any) {
-    console.error('[Vercel API] Error confirming payment:', err);
-    res.status(500).json({ success: false, error: err.message || 'Lỗi server' });
+  } catch (err) {
+    next(err);
   }
 });
 
 // API Route 2: Approve order (Admin duyệt đơn: PENDING -> SUCCESS và cấp tài khoản game)
-app.put('/api/orders/:id/approve', async (req, res) => {
+app.put('/api/orders/:id/approve', async (req, res, next) => {
   const { id } = req.params;
   console.log(`[Vercel API Approve] Initiating approval for order ID: ${id}`);
   try {
@@ -134,14 +133,13 @@ app.put('/api/orders/:id/approve', async (req, res) => {
     });
 
     res.json({ success: true, message: 'Duyệt đơn hàng thành công!' });
-  } catch (err: any) {
-    console.error('[Vercel API] Error approving order:', err);
-    res.status(500).json({ success: false, error: err.message || 'Lỗi server' });
+  } catch (err) {
+    next(err);
   }
 });
 
 // API Route 3: Cancel order (Admin hủy đơn: PENDING -> CANCELLED)
-app.put('/api/orders/:id/cancel', async (req, res) => {
+app.put('/api/orders/:id/cancel', async (req, res, next) => {
   const { id } = req.params;
   try {
     const db = getDb();
@@ -157,10 +155,19 @@ app.put('/api/orders/:id/cancel', async (req, res) => {
     });
 
     res.json({ success: true, message: 'Hủy đơn hàng thành công!' });
-  } catch (err: any) {
-    console.error('[Vercel API] Error cancelling order:', err);
-    res.status(500).json({ success: false, error: err.message || 'Lỗi server' });
+  } catch (err) {
+    next(err);
   }
+});
+
+// Global Error Handler to guarantee API always outputs JSON instead of HTML
+app.use((err: any, req: any, res: any, next: any) => {
+  console.error('[Vercel API Error]: ', err);
+  res.status(500).json({
+    success: false,
+    error: err.message || 'Lỗi server nội bộ',
+    details: err.stack ? err.stack.toString() : undefined
+  });
 });
 
 export default app;
