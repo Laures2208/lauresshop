@@ -1,38 +1,19 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, doc, updateDoc, getDoc, setDoc } from 'firebase/firestore';
+import firebaseConfig from '../firebase-applet-config.json';
 
 const app = express();
 app.use(express.json());
-
-// Load Firebase configuration securely from available paths
-let firebaseConfig: any = null;
-try {
-  const possiblePaths = [
-    path.join(process.cwd(), 'firebase-applet-config.json'),
-    path.join(process.cwd(), 'api', '..', 'firebase-applet-config.json'),
-    path.join(__dirname, '..', 'firebase-applet-config.json'),
-    '/var/task/firebase-applet-config.json' // Vercel lambda mount path
-  ];
-
-  for (const configPath of possiblePaths) {
-    if (fs.existsSync(configPath)) {
-      firebaseConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-      break;
-    }
-  }
-} catch (e) {
-  console.error('[Vercel API] Error finding/reading config file:', e);
-}
 
 // Handler helper to initialize firebase and get firestore db instance
 function getDb() {
   if (!firebaseConfig) {
     throw new Error('Firebase configuration could not be loaded. Please ensure firebase-applet-config.json is present in the workspace.');
   }
-  const firebaseApp = initializeApp(firebaseConfig);
+  const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
   return getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
 }
 
