@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useShop } from '../context/ShopContext';
-import { Star, Shield } from 'lucide-react';
+import { Star, Shield, Sword } from 'lucide-react';
 import { AccountProduct } from '../types';
+import { motion } from 'motion/react';
+import { AccountCard3D } from './AccountCard3D';
 
 export const AccountList: React.FC = () => {
   const { accounts, categories, addToCart, showToast } = useShop();
@@ -24,117 +26,81 @@ export const AccountList: React.FC = () => {
   });
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h2 className="text-2xl font-black uppercase border-l-4 border-red-600 pl-3 tracking-tighter text-white">Tài Khoản Game</h2>
-          <p className="text-xs text-gray-500 mt-1 font-medium">Lựa chọn tài khoản game vip, an toàn, giao dịch nhanh chóng</p>
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div className="flex items-center gap-3">
+          <motion.div
+            animate={{ y: [0, -5, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            className="p-2 border border-red-500/50 bg-red-900/20 rounded-lg shadow-[0_0_15px_rgba(220,38,38,0.5)]"
+          >
+            <Sword className="w-8 h-8 text-red-500" />
+          </motion.div>
+          <div>
+            <h2 className="text-2xl font-black uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-white drop-shadow-[0_0_8px_rgba(220,38,38,0.5)]">Tài Khoản Game</h2>
+            <p className="text-xs text-gray-400 mt-1 font-medium italic">Lựa chọn tài khoản game vip, an toàn, giao dịch nhanh chóng</p>
+          </div>
         </div>
       </div>
 
       {/* Category filters */}
       {categories.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-8 border-b border-gray-800 pb-6">
-          <button
+        <div className="flex flex-wrap gap-3 mb-10 border-b border-gray-800/60 pb-6">
+          <motion.button
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => setSelectedCategoryId('all')}
-            className={`px-4 py-2 text-xs font-black uppercase tracking-wider rounded-lg border transition-all ${
+            className={`px-5 py-2.5 text-xs font-black uppercase tracking-wider rounded-lg border backdrop-blur-sm transition-all ${
               selectedCategoryId === 'all'
-                ? 'bg-red-600 border-red-600 text-white shadow-lg shadow-red-900/20'
-                : 'bg-[#141414] border-gray-800 text-gray-400 hover:text-white'
+                ? 'bg-red-600 border-red-500 text-white shadow-[0_0_20px_rgba(220,38,38,0.6)]'
+                : 'bg-[#141414]/80 border-gray-700 text-gray-400 hover:text-white hover:border-red-900 hover:shadow-[0_0_15px_rgba(220,38,38,0.3)]'
             }`}
           >
-            Tất Cả ({accounts.filter(a => !a.isSold).length})
-          </button>
+            <span className="flex items-center gap-2">Tất Cả <span className="bg-black/50 px-2 py-0.5 rounded-full text-[10px]">{accounts.filter(a => !a.isSold).length}</span></span>
+          </motion.button>
           
           {categories.map(cat => {
             const count = accounts.filter(a => !a.isSold && a.categoryId === cat.id).length;
             return (
-              <button
+              <motion.button
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
                 key={cat.id}
                 onClick={() => setSelectedCategoryId(cat.id)}
-                className={`px-4 py-2 text-xs font-black uppercase tracking-wider rounded-lg border transition-all ${
+                className={`px-5 py-2.5 text-xs font-black uppercase tracking-wider rounded-lg border backdrop-blur-sm transition-all ${
                   selectedCategoryId === cat.id
-                    ? 'bg-red-600 border-red-600 text-white shadow-lg shadow-red-900/20'
-                    : 'bg-[#141414] border-gray-800 text-gray-400 hover:text-white'
+                    ? 'bg-red-600 border-red-500 text-white shadow-[0_0_20px_rgba(220,38,38,0.6)]'
+                    : 'bg-[#141414]/80 border-gray-700 text-gray-400 hover:text-white hover:border-red-900 hover:shadow-[0_0_15px_rgba(220,38,38,0.3)]'
                 }`}
               >
-                {cat.name} ({count})
-              </button>
+                <span className="flex items-center gap-2">{cat.name} <span className="bg-black/50 px-2 py-0.5 rounded-full text-[10px]">{count}</span></span>
+              </motion.button>
             );
           })}
         </div>
       )}
 
       {filteredAccounts.length === 0 ? (
-        <div className="bg-[#141414] border border-gray-800 rounded-xl p-8 text-center text-gray-500 italic text-sm">
-          Không có tài khoản game nào thuộc danh mục này đang mở bán.
-        </div>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-[#141414]/80 backdrop-blur-md border border-gray-800 rounded-xl p-10 text-center text-gray-400 italic font-medium shadow-2xl relative overflow-hidden"
+        >
+          <div className="absolute inset-0 bg-red-900/5 pulse-slow" />
+          <Sword className="w-12 h-12 text-gray-700 mx-auto mb-4 opacity-50" />
+          <p>Không có tài khoản game nào thuộc danh mục này đang mở bán.</p>
+        </motion.div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {filteredAccounts.map(acc => (
-            <div key={acc.id} className="bg-[#141414] border border-gray-800 rounded-xl flex flex-col overflow-hidden hover:border-red-600/30 transition-all group hover:-translate-y-1">
-              <div className="relative h-40 bg-[#1f1f1f] flex items-center justify-center overflow-hidden">
-                 {acc.discountPercentage && (
-                  <div className="absolute top-2 right-2 bg-red-600 text-white text-[9px] sm:text-xs font-bold px-2 py-0.5 rounded uppercase z-10">
-                    -{acc.discountPercentage}%
-                  </div>
-                )}
-                 <div className="absolute top-2 left-2 text-gray-400 font-bold uppercase text-[9px] sm:text-[10px] bg-black/50 px-2 py-0.5 rounded z-10 backdrop-blur-sm">
-                    Acc Game #{acc.id.substring(2, 6)}
-                </div>
-                <img 
-                  src={acc.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=800'} 
-                  alt={acc.title} 
-                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-80 group-hover:opacity-100" 
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-transparent to-transparent opacity-90" />
-              </div>
-
-               <div className="p-3 flex flex-col flex-1">
-                <h3 className="text-sm font-bold truncate text-gray-100" title={acc.title}>{acc.title}</h3>
-                
-                <div className="grid grid-cols-2 gap-2 text-[10px] sm:text-xs text-gray-400 mt-3 mb-3">
-                  {acc.rank && (
-                     <div className="flex items-center gap-1 bg-[#1f1f1f] border border-gray-800 px-2 py-1 rounded">
-                      <Shield className="w-3 h-3 text-red-500" />
-                      <span className="truncate">{acc.rank}</span>
-                    </div>
-                  )}
-                  {acc.champions !== undefined && (
-                     <div className="flex items-center gap-1 bg-[#1f1f1f] border border-gray-800 px-2 py-1 rounded">
-                      <Star className="w-3 h-3 text-yellow-500" />
-                      <span>{acc.champions} Tướng</span>
-                    </div>
-                  )}
-                   {acc.skins !== undefined && (
-                     <div className="flex items-center gap-1 bg-[#1f1f1f] border border-gray-800 px-2 py-1 rounded col-span-2">
-                      <Star className="w-3 h-3 text-purple-500" />
-                      <span>{acc.skins} Trang phục</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-auto">
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-red-500 font-bold text-sm sm:text-base">
-                      {acc.price.toLocaleString()}đ
-                    </span>
-                    {acc.originalPrice && (
-                      <span className="text-[10px] sm:text-xs text-gray-500 line-through">
-                        {acc.originalPrice.toLocaleString()}đ
-                      </span>
-                    )}
-                  </div>
-                  <button 
-                    onClick={() => handleAddToCart(acc)}
-                    className="w-full mt-3 py-2 sm:py-2.5 bg-[#1f1f1f] hover:bg-red-600/20 hover:text-red-500 border border-gray-800 text-[10px] sm:text-xs font-bold uppercase transition-all rounded text-gray-300"
-                    title="Thêm vào giỏ hàng"
-                  >
-                    Thêm vào giỏ
-                  </button>
-                </div>
-              </div>
-            </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+          {filteredAccounts.map((acc, idx) => (
+            <motion.div
+              key={acc.id}
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.1, duration: 0.5, type: "spring" }}
+            >
+              <AccountCard3D account={acc} onAddToCart={handleAddToCart} />
+            </motion.div>
           ))}
         </div>
       )}

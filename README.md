@@ -1,20 +1,46 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Laures Shop - Trải nghiệm Mua Bán Acc Game eSports
 
-# Run and deploy your AI Studio app
+Dự án này sử dụng thư viện hoạt ảnh **Framer Motion** (nay đã được định danh và nâng cấp với tên gọi mới nhất là `motion`) để xử lý các hiệu ứng 3D và tương tác cực kỳ mượt mà.
 
-This contains everything you need to run your app locally.
+## 1. Hướng Dẫn Cài Đặt Framer Motion
 
-View your app in AI Studio: https://ai.studio/apps/30b33e7b-9d13-4d8d-b432-fa761175e004
+Nếu bạn chạy source code này trên máy cá nhân, hãy mở Terminal (trong thư mục gốc của dự án) và chạy dòng lệnh sau để cài đặt:
 
-## Run Locally
+```bash
+# Cài đặt thư viện motion (phiên bản mới và tốt nhất của framer-motion)
+npm install motion
+```
 
-**Prerequisites:**  Node.js
+*(Lưu ý: Bạn cũng có thể dùng `npm install framer-motion`, tuy nhiên ở phiên bản mới nhất, tác giả đã chuyển sang package `motion` với cú pháp import là `motion/react` để tối ưu dung lượng và hiệu năng).*
 
+Sau khi cài đặt thành công, hãy khởi động web bằng lệnh:
+```bash
+npm run dev
+```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## 2. Cách Sử Dụng Trong Khối Code
+
+Bạn có thể tham khảo component `HeroSection.tsx` hoặc `AccountCard3D.tsx` trong thư mục `src/components/`.
+
+**Cú pháp cơ bản:**
+```jsx
+// Import thư viện
+import { motion } from 'motion/react';
+
+// Sử dụng thẻ motion thay cho thẻ HTML thường
+<motion.div
+  initial={{ opacity: 0, y: 50 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.5 }}
+>
+  Nội dung xuất hiện từ dưới lên
+</motion.div>
+
+// Hiệu ứng nút bấm 3D Hover & Click
+<motion.button
+  whileHover={{ scale: 1.1, y: -5 }}
+  whileTap={{ scale: 0.9 }}
+>
+  Click Me!
+</motion.button>
+```
