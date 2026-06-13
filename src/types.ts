@@ -10,6 +10,12 @@ export interface User {
   phone?: string;
 }
 
+export interface Category {
+  id: string;
+  name: string;
+  createdAt: number;
+}
+
 export interface AccountProduct {
   id: string;
   imageUrl: string;
@@ -22,6 +28,8 @@ export interface AccountProduct {
   skins?: number;
   gameUsername?: string;
   gamePassword?: string;
+  categoryId?: string;
+  isSold?: boolean;
 }
 
 export interface ServicePrices {

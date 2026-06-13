@@ -6,7 +6,22 @@ import { User } from '../types';
 import { AdminOrders } from '../components/AdminOrders';
 
 export const Admin: React.FC = () => {
-  const { user, addAccount, registeredUsers, servicePrices, updateServicePrices, showToast, deleteUser, updateUser, orders } = useShop();
+  const { 
+    user, 
+    accounts,
+    addAccount, 
+    deleteAccount, 
+    categories, 
+    addCategory, 
+    deleteCategory, 
+    registeredUsers, 
+    servicePrices, 
+    updateServicePrices, 
+    showToast, 
+    deleteUser, 
+    updateUser, 
+    orders 
+  } = useShop();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'ACCOUNTS' | 'USERS' | 'SETTINGS' | 'ORDERS'>('ACCOUNTS');
 
@@ -20,7 +35,8 @@ export const Admin: React.FC = () => {
     champions: '',
     skins: '',
     gameUsername: '',
-    gamePassword: ''
+    gamePassword: '',
+    categoryId: ''
   });
 
   const [pricesData, setPricesData] = useState({
@@ -33,6 +49,7 @@ export const Admin: React.FC = () => {
 
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [userFormData, setUserFormData] = useState<Partial<User>>({});
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   if (!user || user.role !== 'ADMIN') {
     return (
@@ -67,19 +84,20 @@ export const Admin: React.FC = () => {
     addAccount({
       title: formData.title,
       imageUrl: formData.imageUrl,
-      price: parseInt(formData.price),
-      originalPrice: formData.originalPrice ? parseInt(formData.originalPrice) : undefined,
-      discountPercentage: formData.discountPercentage ? parseInt(formData.discountPercentage) : undefined,
+      price: !isNaN(parseInt(formData.price)) ? parseInt(formData.price) : 0,
+      originalPrice: formData.originalPrice && !isNaN(parseInt(formData.originalPrice)) ? parseInt(formData.originalPrice) : undefined,
+      discountPercentage: formData.discountPercentage && !isNaN(parseInt(formData.discountPercentage)) ? parseInt(formData.discountPercentage) : undefined,
       rank: formData.rank,
-      champions: formData.champions ? parseInt(formData.champions) : undefined,
-      skins: formData.skins ? parseInt(formData.skins) : undefined,
+      champions: formData.champions && !isNaN(parseInt(formData.champions)) ? parseInt(formData.champions) : undefined,
+      skins: formData.skins && !isNaN(parseInt(formData.skins)) ? parseInt(formData.skins) : undefined,
       gameUsername: formData.gameUsername,
       gamePassword: formData.gamePassword,
+      categoryId: formData.categoryId || undefined,
     });
 
     showToast('Đăng sản phẩm thành công!');
     setFormData({
-      title: '', imageUrl: '', price: '', originalPrice: '', discountPercentage: '', rank: 'Cao Thủ', champions: '', skins: '', gameUsername: '', gamePassword: ''
+      title: '', imageUrl: '', price: '', originalPrice: '', discountPercentage: '', rank: 'Cao Thủ', champions: '', skins: '', gameUsername: '', gamePassword: '', categoryId: ''
     });
   };
 
@@ -112,149 +130,346 @@ export const Admin: React.FC = () => {
         </div>
 
         {activeTab === 'ACCOUNTS' && (
-          <div className="bg-[#141414] border border-gray-800 rounded-2xl overflow-hidden shadow-2xl">
-            <div className="p-6 bg-[#0a0a0a] border-b border-gray-800">
-              <h2 className="text-xl font-black text-white flex items-center gap-2 uppercase tracking-wide">
-                <PlusCircle className="w-5 h-5 text-red-600" /> Thêm Tài Khoản Mới
-              </h2>
+          <div className="space-y-8">
+            {/* Dashboard summary stats */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-[#141414] border border-gray-800 rounded-xl p-4 flex flex-col">
+                <span className="text-gray-500 text-xs font-black uppercase tracking-widest mb-1">Tổng Số Acc Treo</span>
+                <span className="text-2xl font-black text-white">{accounts.filter(a => !a.isSold).length} acc</span>
+              </div>
+              <div className="bg-[#141414] border border-gray-800 rounded-xl p-4 flex flex-col">
+                <span className="text-gray-500 text-xs font-black uppercase tracking-widest mb-1">Đã Bán</span>
+                <span className="text-2xl font-black text-red-500">{accounts.filter(a => a.isSold).length} acc</span>
+              </div>
+              <div className="bg-[#141414] border border-gray-800 rounded-xl p-4 flex flex-col">
+                <span className="text-gray-500 text-xs font-black uppercase tracking-widest mb-1">Số Danh Mục Game</span>
+                <span className="text-2xl font-black text-white">{categories.length} danh mục</span>
+              </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-black uppercase text-gray-500 mb-2 tracking-widest">Tiêu đề / Tên gói</label>
-                  <input 
-                    type="text" 
-                    name="title"
-                    required
-                    value={formData.title}
-                    onChange={handleChange}
-                    placeholder="Ví dụ: Acc Trắng Thông Tin Vip..."
-                    className="w-full bg-[#1f1f1f] border border-gray-800 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-red-600 transition-colors"
-                  />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Left Column: Form to Add Account (2/3 width) */}
+              <div className="lg:col-span-2 bg-[#141414] border border-gray-800 rounded-2xl overflow-hidden shadow-2xl">
+                <div className="p-6 bg-[#0a0a0a] border-b border-gray-800">
+                  <h2 className="text-xl font-black text-white flex items-center gap-2 uppercase tracking-wide">
+                    <PlusCircle className="w-5 h-5 text-red-600" /> Thêm Tài Khoản Mới
+                  </h2>
                 </div>
 
-                <div className="md:col-span-2">
-                   <label className="block text-xs font-black uppercase text-gray-500 mb-2 tracking-widest">URL Hình Ảnh</label>
-                   <div className="flex">
-                      <span className="inline-flex items-center px-4 rounded-l-xl border border-r-0 border-gray-800 bg-[#0a0a0a] text-gray-500">
-                        <ImageIcon className="w-4 h-4" />
-                      </span>
+                <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-black uppercase text-gray-500 mb-2 tracking-widest">Tiêu đề / Tên gói</label>
                       <input 
-                        type="url" 
-                        name="imageUrl"
+                        type="text" 
+                        name="title"
                         required
-                        value={formData.imageUrl}
+                        value={formData.title}
                         onChange={handleChange}
-                        placeholder="https://..."
-                        className="flex-1 w-full bg-[#1f1f1f] border border-gray-800 rounded-none rounded-r-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-red-600 transition-colors"
+                        placeholder="Ví dụ: Acc Trắng Thông Tin Vip..."
+                        className="w-full bg-[#1f1f1f] border border-gray-800 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-red-600 transition-colors"
                       />
-                   </div>
-                </div>
+                    </div>
 
-                <div>
-                  <label className="block text-xs font-black uppercase text-gray-500 mb-2 tracking-widest">Giá bán (VNĐ)</label>
-                  <input 
-                    type="number" 
-                    name="price"
-                    required
-                    value={formData.price}
-                    onChange={handleChange}
-                    className="w-full bg-[#1f1f1f] border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-600 transition-colors"
-                  />
-                </div>
+                    <div className="md:col-span-2">
+                       <label className="block text-xs font-black uppercase text-gray-500 mb-2 tracking-widest">URL Hình Ảnh</label>
+                       <div className="flex">
+                          <span className="inline-flex items-center px-4 rounded-l-xl border border-r-0 border-gray-800 bg-[#0a0a0a] text-gray-500">
+                            <ImageIcon className="w-4 h-4" />
+                          </span>
+                          <input 
+                            type="url" 
+                            name="imageUrl"
+                            required
+                            value={formData.imageUrl}
+                            onChange={handleChange}
+                            placeholder="https://..."
+                            className="flex-1 w-full bg-[#1f1f1f] border border-gray-800 rounded-none rounded-r-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-red-600 transition-colors"
+                          />
+                       </div>
+                    </div>
 
-                <div>
-                   <label className="block text-xs font-black uppercase text-gray-500 mb-2 tracking-widest">Giảm giá (%) <span className="text-gray-600 font-normal normal-case tracking-normal">Tùy chọn</span></label>
-                  <input 
-                    type="number" 
-                    name="discountPercentage"
-                    value={formData.discountPercentage}
-                    onChange={handleChange}
-                    className="w-full bg-[#1f1f1f] border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-600 transition-colors"
-                  />
-                </div>
-
-                 <div>
-                  <label className="block text-xs font-black uppercase text-gray-500 mb-2 tracking-widest">Mức Rank</label>
-                  <select 
-                    name="rank"
-                    value={formData.rank}
-                    onChange={handleChange}
-                    className="w-full bg-[#1f1f1f] border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-600 transition-colors"
-                  >
-                    <option value="Đồng">Đồng</option>
-                    <option value="Bạc">Bạc</option>
-                    <option value="Vàng">Vàng</option>
-                    <option value="Bạch Kim">Bạch Kim</option>
-                    <option value="Kim Cương">Kim Cương</option>
-                    <option value="Tinh Anh">Tinh Anh</option>
-                    <option value="Cao Thủ">Cao Thủ</option>
-                    <option value="Chiến Tướng">Chiến Tướng</option>
-                  </select>
-                </div>
-
-                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-black uppercase text-gray-500 mb-2 tracking-widest">Số Tướng</label>
+                      <label className="block text-xs font-black uppercase text-gray-500 mb-2 tracking-widest">Giá bán (VNĐ)</label>
                       <input 
                         type="number" 
-                        name="champions"
-                        value={formData.champions}
+                        name="price"
+                        required
+                        value={formData.price}
                         onChange={handleChange}
                         className="w-full bg-[#1f1f1f] border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-600 transition-colors"
                       />
                     </div>
+
                     <div>
-                      <label className="block text-xs font-black uppercase text-gray-500 mb-2 tracking-widest">Số Trang Phục</label>
+                       <label className="block text-xs font-black uppercase text-gray-500 mb-2 tracking-widest">Giảm giá (%) <span className="text-gray-600 font-normal normal-case tracking-normal">Tùy chọn</span></label>
                       <input 
                         type="number" 
-                        name="skins"
-                        value={formData.skins}
+                        name="discountPercentage"
+                        value={formData.discountPercentage}
                         onChange={handleChange}
                         className="w-full bg-[#1f1f1f] border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-600 transition-colors"
                       />
                     </div>
-                 </div>
-                 
-                 <div className="md:col-span-2 pt-4 border-t border-gray-800">
-                    <h3 className="text-sm font-bold text-red-500 uppercase tracking-widest mb-4">Thông tin đăng nhập Game</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-xs font-black uppercase text-gray-500 mb-2 tracking-widest">Tài khoản Game</label>
-                        <input 
-                          type="text" 
-                          name="gameUsername"
-                          required
-                          value={formData.gameUsername}
-                          onChange={handleChange}
-                          className="w-full bg-[#1f1f1f] border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-600 transition-colors"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-black uppercase text-gray-500 mb-2 tracking-widest">Mật khẩu Game</label>
-                        <input 
-                          type="text" 
-                          name="gamePassword"
-                          required
-                          value={formData.gamePassword}
-                          onChange={handleChange}
-                          className="w-full bg-[#1f1f1f] border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-600 transition-colors"
-                        />
-                      </div>
+
+                     <div>
+                      <label className="block text-xs font-black uppercase text-gray-500 mb-2 tracking-widest">Mức Rank</label>
+                      <select 
+                        name="rank"
+                        value={formData.rank}
+                        onChange={handleChange}
+                        className="w-full bg-[#1f1f1f] border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-600 transition-colors"
+                      >
+                        <option value="Đồng">Đồng</option>
+                        <option value="Bạc">Bạc</option>
+                        <option value="Vàng">Vàng</option>
+                        <option value="Bạch Kim">Bạch Kim</option>
+                        <option value="Kim Cương">Kim Cương</option>
+                        <option value="Tinh Anh">Tinh Anh</option>
+                        <option value="Cao Thủ">Cao Thủ</option>
+                        <option value="Chiến Tướng">Chiến Tướng</option>
+                      </select>
                     </div>
-                 </div>
+
+                     <div>
+                      <label className="block text-xs font-black uppercase text-gray-500 mb-2 tracking-widest">Danh Mục Game</label>
+                      <select 
+                        name="categoryId"
+                        value={formData.categoryId}
+                        onChange={handleChange}
+                        required
+                        className="w-full bg-[#1f1f1f] border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-600 transition-colors"
+                      >
+                        <option value="">-- Chọn Danh Mục --</option>
+                        {categories.map(cat => (
+                          <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                     <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-black uppercase text-gray-500 mb-2 tracking-widest">Số Tướng</label>
+                          <input 
+                            type="number" 
+                            name="champions"
+                            value={formData.champions}
+                            onChange={handleChange}
+                            className="w-full bg-[#1f1f1f] border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-600 transition-colors"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-black uppercase text-gray-500 mb-2 tracking-widest">Số Trang Phục</label>
+                          <input 
+                            type="number" 
+                            name="skins"
+                            value={formData.skins}
+                            onChange={handleChange}
+                            className="w-full bg-[#1f1f1f] border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-600 transition-colors"
+                          />
+                        </div>
+                     </div>
+                     
+                     <div className="md:col-span-2 pt-4 border-t border-gray-800">
+                        <h3 className="text-sm font-bold text-red-500 uppercase tracking-widest mb-4">Thông tin đăng nhập Game</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <label className="block text-xs font-black uppercase text-gray-500 mb-2 tracking-widest">Tài khoản Game</label>
+                            <input 
+                              type="text" 
+                              name="gameUsername"
+                              required
+                              value={formData.gameUsername}
+                              onChange={handleChange}
+                              className="w-full bg-[#1f1f1f] border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-600 transition-colors"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-black uppercase text-gray-500 mb-2 tracking-widest">Mật khẩu Game</label>
+                            <input 
+                              type="text" 
+                              name="gamePassword"
+                              required
+                              value={formData.gamePassword}
+                              onChange={handleChange}
+                              className="w-full bg-[#1f1f1f] border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-600 transition-colors"
+                            />
+                          </div>
+                        </div>
+                     </div>
+                  </div>
+
+                  <div className="pt-6 border-t border-gray-800">
+                    <button 
+                      type="submit"
+                      className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white px-10 py-4 rounded-xl font-black uppercase tracking-widest transition-all shadow-lg shadow-red-900/30"
+                    >
+                      Đăng Sản Phẩm
+                    </button>
+                  </div>
+                </form>
               </div>
 
-              <div className="pt-6 border-t border-gray-800">
-                <button 
-                  type="submit"
-                  className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white px-10 py-4 rounded-xl font-black uppercase tracking-widest transition-all shadow-lg shadow-red-900/30"
-                >
-                  Đăng Sản Phẩm
-                </button>
+              {/* Right Column: Category Manager (1/3 width) */}
+              <div className="bg-[#141414] border border-gray-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col h-fit">
+                <div className="p-6 bg-[#0a0a0a] border-b border-gray-800">
+                  <h2 className="text-lg font-black text-white flex items-center gap-2 uppercase tracking-wide">
+                    <PlusCircle className="w-5 h-5 text-red-600" /> Quản Lý Danh Mục
+                  </h2>
+                </div>
+
+                <div className="p-6 space-y-6">
+                  {/* Create Category Form */}
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!newCategoryName.trim()) return;
+                    const success = await addCategory(newCategoryName.trim());
+                    if (success) setNewCategoryName('');
+                  }} className="space-y-3">
+                    <label className="block text-xs font-black uppercase text-gray-500 tracking-widest">Tên danh mục mới</label>
+                    <div className="flex gap-2">
+                      <input 
+                        type="text"
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        placeholder="Ví dụ: Liên Quân, Free Fire..."
+                        className="flex-1 bg-[#1f1f1f] border border-gray-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-red-600 transition-colors bg-opacity-50"
+                      />
+                      <button 
+                        type="submit"
+                        className="bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase px-4 rounded-xl transition-all shrink-0"
+                      >
+                        Thêm
+                      </button>
+                    </div>
+                  </form>
+
+                  {/* List of categories */}
+                  <div className="space-y-2 border-t border-gray-800 pt-6">
+                    <h3 className="text-xs font-black uppercase text-gray-500 tracking-widest mb-3">Danh sách danh mục ({categories.length})</h3>
+                    {categories.length === 0 ? (
+                      <p className="text-sm text-gray-600 italic">Chưa có danh mục nào được tạo.</p>
+                    ) : (
+                      <div className="max-h-64 overflow-y-auto space-y-2 pr-1 scrollbar-thin scrollbar-thumb-gray-800">
+                        {categories.map(cat => (
+                          <div key={cat.id} className="flex justify-between items-center bg-[#1f1f1f] border border-gray-800/80 p-3 rounded-xl hover:border-red-600/20 transition-all">
+                            <span className="text-sm font-bold text-gray-200">{cat.name}</span>
+                            <button 
+                              type="button"
+                              onClick={async () => {
+                                if (window.confirm(`Bạn có chắc chắn muốn xóa danh mục "${cat.name}"?`)) {
+                                  await deleteCategory(cat.id);
+                                }
+                              }}
+                              className="text-red-500 hover:text-red-400 p-1.5 rounded hover:bg-red-500/10 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-            </form>
+            </div>
+
+            {/* Inventory listing section */}
+            <div className="bg-[#141414] border border-gray-800 rounded-2xl overflow-hidden shadow-2xl">
+              <div className="p-6 bg-[#0a0a0a] border-b border-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-black text-white uppercase tracking-wide">
+                    Theo Dõi & Quản Lý Acc Đang Treo Bán
+                  </h2>
+                  <p className="text-xs text-gray-500 mt-1 font-medium tracking-wide">Danh sách tài khoản game đang đăng bán trên shop, hoặc đã bán</p>
+                </div>
+                <div className="text-xs font-bold text-gray-400 bg-[#1f1f1f] border border-gray-800 px-3 py-1.5 rounded-lg h-fit">
+                  Tổng cộng: <span className="text-red-500 font-extrabold">{accounts.length}</span> tài khoản
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-[#1f1f1f] text-xs font-black text-gray-400 uppercase tracking-widest border-b border-gray-800">
+                      <th className="p-4">Thông tin Acc</th>
+                      <th className="p-4">Danh Mục</th>
+                      <th className="p-4">Đơn Giá</th>
+                      <th className="p-4">Trạng Thái</th>
+                      <th className="p-4">Thông tin đăng nhập</th>
+                      <th className="p-4 text-right">Thao Tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {accounts.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="p-8 text-center text-gray-500 italic text-sm">Chưa có tài khoản game nào được treo bán.</td>
+                      </tr>
+                    ) : (
+                      accounts.map(acc => {
+                        const cat = categories.find(c => c.id === acc.categoryId);
+                        return (
+                          <tr key={acc.id} className="border-b border-gray-800 hover:bg-[#0a0a0a] transition-colors text-sm">
+                            <td className="p-4">
+                              <div className="flex items-center gap-3">
+                                <img src={acc.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=800'} alt={acc.title} className="w-12 h-12 object-cover rounded-lg border border-gray-800 shrink-0" />
+                                <div className="flex flex-col">
+                                  <span className="font-bold text-white text-sm line-clamp-1">{acc.title}</span>
+                                  <span className="text-xs text-gray-400 mt-0.5 font-medium">Rank: {acc.rank} | {acc.champions || 0} Tướng | {acc.skins || 0} Skin</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-4">
+                              <span className="inline-block px-2 py-1 text-xs font-bold rounded bg-red-950/40 border border-red-900/30 text-red-400 uppercase">
+                                {cat ? cat.name : 'Chưa phân loại'}
+                              </span>
+                            </td>
+                            <td className="p-4">
+                              <div className="flex flex-col">
+                                <span className="font-bold text-red-500">{acc.price.toLocaleString()}đ</span>
+                                {acc.originalPrice && (
+                                  <span className="text-[10px] text-gray-500 line-through mt-0.5 font-medium">{(acc.originalPrice).toLocaleString()}đ</span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="p-4">
+                              {acc.isSold ? (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-red-950/40 text-red-500 border border-red-900/30">
+                                  Đã bán
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-green-950/40 text-green-500 border border-green-900/30">
+                                  Đang treo
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-4 font-mono text-xs">
+                              <div className="flex flex-col text-gray-400 gap-0.5">
+                                <span>User: <strong className="text-gray-200">{acc.gameUsername}</strong></span>
+                                <span>Pass: <strong className="text-gray-200">{acc.gamePassword}</strong></span>
+                              </div>
+                            </td>
+                            <td className="p-4 text-right">
+                              <button 
+                                onClick={async () => {
+                                  if (window.confirm(`Bạn có chắc chắn muốn xóa tài khoản "${acc.title}" khỏi shop?`)) {
+                                    await deleteAccount(acc.id);
+                                  }
+                                }}
+                                className="p-2 hover:bg-red-600/20 hover:text-red-500 text-gray-400 border border-gray-800 bg-[#1f1f1f] rounded-lg transition-all"
+                                title="Gỡ bỏ tài khoản"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
 

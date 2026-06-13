@@ -26,9 +26,20 @@
         "champions": { "type": "number" },
         "skins": { "type": "number" },
         "gameUsername": { "type": "string" },
-        "gamePassword": { "type": "string" }
+        "gamePassword": { "type": "string" },
+        "categoryId": { "type": "string" }
       },
       "required": ["title", "imageUrl", "price", "rank", "gameUsername", "gamePassword"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Game account category",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["name", "createdAt"]
     },
     "ServicePrices": {
       "title": "ServicePrices",
@@ -54,6 +65,10 @@
     }
   },
   "firestore": {
+    "categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Categories for game accounts"
+    },
     "users/{userId}": {
       "schema": "User",
       "description": "User profiles"

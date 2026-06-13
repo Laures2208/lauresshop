@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, AccountProduct, CartItem, ServicePrices, Order } from '../types';
+import { User, AccountProduct, CartItem, ServicePrices, Order, Category } from '../types';
 import { db } from '../firebase';
-import { collection, onSnapshot, setDoc, doc, addDoc } from 'firebase/firestore';
+import { collection, onSnapshot, setDoc, doc, addDoc, deleteDoc } from 'firebase/firestore';
 
 export enum OperationType {
   CREATE = 'create',
@@ -45,6 +45,10 @@ interface ShopContextType {
   logout: () => void;
   accounts: AccountProduct[];
   addAccount: (acc: Omit<AccountProduct, 'id'>) => void;
+  deleteAccount: (id: string) => Promise<boolean>;
+  categories: Category[];
+  addCategory: (name: string) => Promise<boolean>;
+  deleteCategory: (id: string) => Promise<boolean>;
   cart: CartItem[];
   addToCart: (item: Omit<CartItem, 'id'>) => void;
   removeFromCart: (id: string) => void;
@@ -62,33 +66,6 @@ interface ShopContextType {
 
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
 
-const INITIAL_ACCOUNTS: AccountProduct[] = [
-  {
-    id: '1',
-    imageUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=800',
-    title: 'Acc Hayate Tử Thần / Kirito',
-    price: 500000,
-    originalPrice: 800000,
-    discountPercentage: 37,
-    rank: 'Cao thủ',
-    champions: 112,
-    skins: 250,
-    gameUsername: 'kirito_pro',
-    gamePassword: 'password123',
-  },
-  {
-    id: '2',
-    imageUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&q=80&w=800',
-    title: 'Acc Trắng Thông Tin Siêu Rẻ',
-    price: 150000,
-    rank: 'Kim cương',
-    champions: 80,
-    skins: 120,
-    gameUsername: 'smurf_acc',
-    gamePassword: 'password123',
-  },
-];
-
 const DEFAULT_PRICES: ServicePrices = {
   rentPerHour: 8000,
   boostBasic: 50000,
@@ -99,7 +76,8 @@ const DEFAULT_PRICES: ServicePrices = {
 
 export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [accounts, setAccounts] = useState<AccountProduct[]>(INITIAL_ACCOUNTS);
+  const [accounts, setAccounts] = useState<AccountProduct[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [registeredUsers, setRegisteredUsers] = useState<User[]>([]);
@@ -128,17 +106,17 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const unsubAccounts = onSnapshot(collection(db, 'accounts'), (snapshot) => {
       const accs = snapshot.docs.map(accDoc => ({ id: accDoc.id, ...accDoc.data() } as AccountProduct));
-      if (accs.length > 0) {
-        setAccounts(accs);
-      } else {
-        // Seed initial accounts if empty
-        INITIAL_ACCOUNTS.forEach(acc => {
-          setDoc(doc(db, 'accounts', acc.id), acc).catch(console.error);
-        });
-        setAccounts(INITIAL_ACCOUNTS);
-      }
+      setAccounts(accs);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'accounts');
+    });
+
+    const unsubCategories = onSnapshot(collection(db, 'categories'), (snapshot) => {
+      const cats = snapshot.docs.map(catDoc => ({ id: catDoc.id, ...catDoc.data() } as Category));
+      cats.sort((a, b) => a.createdAt - b.createdAt);
+      setCategories(cats);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'categories');
     });
 
     const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
@@ -159,6 +137,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       unsubPrices();
       unsubAccounts();
+      unsubCategories();
       unsubUsers();
       unsubOrders();
     };
@@ -220,8 +199,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
+      const cleanUserData = Object.fromEntries(
+        Object.entries(userData).filter(([_, v]) => v !== undefined)
+      );
       const docRef = await addDoc(collection(db, 'users'), {
-        ...userData,
+        ...cleanUserData,
         role: 'USER',
         balance: 0,
       });
@@ -245,7 +227,10 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateUser = async (userId: string, data: Partial<User>) => {
     try {
       const { id, role, ...updateData } = data;
-      await setDoc(doc(db, 'users', userId), updateData, { merge: true });
+      const cleanUpdateData = Object.fromEntries(
+        Object.entries(updateData).filter(([_, v]) => v !== undefined)
+      );
+      await setDoc(doc(db, 'users', userId), cleanUpdateData, { merge: true });
       showToast('Cập nhật tài khoản thành công!');
       return true;
     } catch(err) {
@@ -284,11 +269,56 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addAccount = async (acc: Omit<AccountProduct, 'id'>) => {
     try {
-      await addDoc(collection(db, 'accounts'), acc);
+      const cleanAccData = Object.fromEntries(
+        Object.entries(acc).filter(([_, value]) => value !== undefined)
+      );
+      await addDoc(collection(db, 'accounts'), cleanAccData);
       showToast('Đăng sản phẩm thành công');
     } catch(err) {
       console.error('Error adding document: ', err);
       showToast('Không thể thêm sản phẩm, vui lòng thử lại', 'error');
+    }
+  };
+
+  const deleteAccount = async (id: string): Promise<boolean> => {
+    try {
+      await deleteDoc(doc(db, 'accounts', id));
+      showToast('Xóa tài khoản thành công!');
+      return true;
+    } catch(err) {
+      console.error('Error deleting document: ', err);
+      showToast('Không thể xóa sản phẩm, vui lòng thử lại', 'error');
+      handleFirestoreError(err, OperationType.DELETE, `accounts/${id}`);
+      return false;
+    }
+  };
+
+  const addCategory = async (name: string): Promise<boolean> => {
+    try {
+      await addDoc(collection(db, 'categories'), {
+        name,
+        createdAt: Date.now()
+      });
+      showToast('Đã thêm danh mục mới');
+      return true;
+    } catch(err) {
+      console.error('Error adding category: ', err);
+      showToast('Không thể thêm danh mục, vui lòng thử lại', 'error');
+      handleFirestoreError(err, OperationType.CREATE, 'categories');
+      return false;
+    }
+  };
+
+  const deleteCategory = async (id: string): Promise<boolean> => {
+    try {
+      await deleteDoc(doc(db, 'categories', id));
+      showToast('Xóa danh mục thành công');
+      return true;
+    } catch(err) {
+      console.error('Error deleting category: ', err);
+      showToast('Không thể xóa danh mục, vui lòng thử lại', 'error');
+      handleFirestoreError(err, OperationType.DELETE, `categories/${id}`);
+      return false;
     }
   };
 
@@ -353,7 +383,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <ShopContext.Provider value={{
       user, login, registerUser, logout,
-      accounts, addAccount,
+      accounts, addAccount, deleteAccount,
+      categories, addCategory, deleteCategory,
       cart, addToCart, removeFromCart, clearCart,
       placeOrder, orders,
       updateUser, deleteUser,
