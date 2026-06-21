@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, AccountProduct, CartItem, ServicePrices, Order, Category } from '../types';
+import { User, AccountProduct, CartItem, ServicePrices, ServiceVisibility, Order, Category } from '../types';
 import { db } from '../firebase';
 import { collection, onSnapshot, setDoc, doc, addDoc, deleteDoc } from 'firebase/firestore';
 
@@ -60,6 +60,8 @@ interface ShopContextType {
   registeredUsers: User[];
   servicePrices: ServicePrices;
   updateServicePrices: (prices: ServicePrices) => void;
+  serviceVisibility: ServiceVisibility;
+  updateServiceVisibility: (visibility: ServiceVisibility) => Promise<void>;
   toast: { message: string, type: 'success' | 'error' } | null;
   showToast: (message: string, type?: 'success' | 'error') => void;
 }
@@ -74,6 +76,12 @@ const DEFAULT_PRICES: ServicePrices = {
   boostCombo2: 50000,
 };
 
+const DEFAULT_VISIBILITY: ServiceVisibility = {
+  showAccounts: true,
+  showRentSlot: true,
+  showRankBoost: true,
+};
+
 export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [accounts, setAccounts] = useState<AccountProduct[]>([]);
@@ -82,6 +90,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [orders, setOrders] = useState<Order[]>([]);
   const [registeredUsers, setRegisteredUsers] = useState<User[]>([]);
   const [servicePrices, setServicePrices] = useState<ServicePrices>(DEFAULT_PRICES);
+  const [serviceVisibility, setServiceVisibility] = useState<ServiceVisibility>(DEFAULT_VISIBILITY);
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
   const [usersLoaded, setUsersLoaded] = useState<boolean>(false);
 
@@ -102,6 +111,16 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'settings/prices');
+    });
+
+    const unsubVisibility = onSnapshot(doc(db, 'settings', 'visibility'), (docSnap) => {
+      if (docSnap.exists()) {
+        setServiceVisibility(docSnap.data() as ServiceVisibility);
+      } else {
+        setDoc(doc(db, 'settings', 'visibility'), DEFAULT_VISIBILITY).catch(console.error);
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'settings/visibility');
     });
 
     const unsubAccounts = onSnapshot(collection(db, 'accounts'), (snapshot) => {
@@ -136,6 +155,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       unsubPrices();
+      unsubVisibility();
       unsubAccounts();
       unsubCategories();
       unsubUsers();
@@ -375,6 +395,16 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateServiceVisibility = async (visibility: ServiceVisibility) => {
+    try {
+      await setDoc(doc(db, 'settings', 'visibility'), visibility);
+      showToast('Cập nhật trạng thái hiển thị thành công!');
+    } catch(err) {
+      console.error(err);
+      showToast('Có lỗi khi cập nhật trạng thái', 'error');
+    }
+  };
+
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
@@ -389,6 +419,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       placeOrder, orders,
       updateUser, deleteUser,
       registeredUsers, servicePrices, updateServicePrices,
+      serviceVisibility, updateServiceVisibility,
       toast, showToast
     }}>
       {children}

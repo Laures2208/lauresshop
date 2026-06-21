@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { collection, getDocs, doc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 import { useShop } from '../context/ShopContext';
 import { useNavigate } from 'react-router';
 import { ShieldCheck, PlusCircle, Image as ImageIcon, Users, Settings, Edit, Trash2 } from 'lucide-react';
 import { User } from '../types';
 import { AdminOrders } from '../components/AdminOrders';
+import { ServiceManager } from '../components/ServiceManager';
 
 export const Admin: React.FC = () => {
   const { 
@@ -16,14 +19,59 @@ export const Admin: React.FC = () => {
     deleteCategory, 
     registeredUsers, 
     servicePrices, 
-    updateServicePrices, 
+    updateServicePrices,
+    serviceVisibility,
+    updateServiceVisibility, 
     showToast, 
     deleteUser, 
     updateUser, 
     orders 
   } = useShop();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'ACCOUNTS' | 'USERS' | 'SETTINGS' | 'ORDERS'>('ACCOUNTS');
+  const [activeTab, setActiveTab] = useState<'ACCOUNTS' | 'USERS' | 'SETTINGS' | 'ORDERS' | 'SERVICES'>('ACCOUNTS');
+  const [customServices, setCustomServices] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (activeTab === 'SETTINGS') {
+      fetchCustomServices();
+    }
+  }, [activeTab]);
+
+  const fetchCustomServices = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'custom_services'));
+      const servicesData: any[] = [];
+      querySnapshot.forEach((doc) => {
+        servicesData.push({ id: doc.id, ...doc.data() });
+      });
+      setCustomServices(servicesData);
+    } catch (error) {
+      console.error('Lỗi tải danh sách dịch vụ động:', error);
+    }
+  };
+
+  const toggleCustomServiceVisibility = async (id: string, currentStatus: boolean) => {
+    try {
+      await updateDoc(doc(db, 'custom_services', id), { isVisible: !currentStatus });
+      setCustomServices(prev => prev.map(s => s.id === id ? { ...s, isVisible: !currentStatus } : s));
+      showToast('Đã cập nhật trạng thái hiển thị!', 'success');
+    } catch (error) {
+      console.error('Lỗi cập nhật trạng thái:', error);
+      showToast('Lỗi cập nhật trạng thái!', 'error');
+    }
+  };
+
+  const handleDeleteCustomService = async (id: string, name: string) => {
+    if (!window.confirm(`Bạn có chắc muốn xóa dịch vụ "${name}"?`)) return;
+    try {
+      await deleteDoc(doc(db, 'custom_services', id));
+      setCustomServices(prev => prev.filter(s => s.id !== id));
+      showToast(`Đã xóa dịch vụ "${name}"!`, 'success');
+    } catch (error) {
+      console.error('Lỗi khi xóa dịch vụ:', error);
+      showToast('Lỗi khi xóa dịch vụ!', 'error');
+    }
+  };
 
   const [formData, setFormData] = useState({
     title: '',
@@ -124,6 +172,7 @@ export const Admin: React.FC = () => {
           <div className="flex gap-2">
             <button onClick={() => setActiveTab('ACCOUNTS')} className={`px-4 py-2 text-xs font-bold uppercase rounded-lg transition-colors ${activeTab === 'ACCOUNTS' ? 'bg-red-600 text-white' : 'bg-[#1f1f1f] text-gray-400 hover:text-white'}`}>Tài Khoản Game</button>
             <button onClick={() => setActiveTab('SETTINGS')} className={`px-4 py-2 text-xs font-bold uppercase rounded-lg transition-colors ${activeTab === 'SETTINGS' ? 'bg-red-600 text-white' : 'bg-[#1f1f1f] text-gray-400 hover:text-white'}`}>Cấu Hình Giá</button>
+            <button onClick={() => setActiveTab('SERVICES')} className={`px-4 py-2 text-xs font-bold uppercase rounded-lg transition-colors ${activeTab === 'SERVICES' ? 'bg-red-600 text-white' : 'bg-[#1f1f1f] text-gray-400 hover:text-white'}`}>Tạo Dịch Vụ Mới</button>
             <button onClick={() => setActiveTab('USERS')} className={`px-4 py-2 text-xs font-bold uppercase rounded-lg transition-colors ${activeTab === 'USERS' ? 'bg-red-600 text-white' : 'bg-[#1f1f1f] text-gray-400 hover:text-white'}`}>Khách Hàng</button>
             <button onClick={() => setActiveTab('ORDERS')} className={`relative px-4 py-2 text-xs font-bold uppercase rounded-lg transition-colors ${activeTab === 'ORDERS' ? 'bg-red-600 text-white' : 'bg-[#1f1f1f] text-gray-400 hover:text-white'}`}>
               Đơn Hàng
@@ -549,6 +598,78 @@ export const Admin: React.FC = () => {
                 <button type="submit" className="bg-red-600 hover:bg-red-700 text-white px-10 py-4 rounded-xl font-black uppercase tracking-widest transition-all">Lưu Bảng Giá</button>
               </div>
             </form>
+
+            <div className="p-6 bg-[#0a0a0a] border-t border-b border-gray-800 mt-8">
+              <h2 className="text-xl font-black text-white flex items-center gap-2 uppercase tracking-wide">
+                <Settings className="w-5 h-5 text-red-600" /> Quản Lý Hiển Thị Dịch Vụ
+              </h2>
+            </div>
+            <div className="p-6 sm:p-8 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                 <div className="bg-[#1f1f1f] border border-gray-800 rounded-xl p-6 flex flex-col items-center text-center space-y-4 relative">
+                    <span className="text-sm font-bold text-white uppercase tracking-widest">Shop Acc</span>
+                    <button
+                      onClick={() => updateServiceVisibility({ ...serviceVisibility, showAccounts: !serviceVisibility.showAccounts })}
+                      className={`px-6 py-2 w-full rounded-lg font-black uppercase text-xs tracking-widest transition-colors ${serviceVisibility.showAccounts ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}
+                    >
+                      {serviceVisibility.showAccounts ? 'Đang Hiện' : 'Đang Ẩn'}
+                    </button>
+                    <button 
+                       onClick={() => showToast('Đây là dịch vụ hệ thống, chỉ có thể Ẩn, không thể xóa.', 'error')}
+                       className="flex items-center justify-center gap-2 w-full py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors text-xs font-bold uppercase"
+                    >
+                       <Trash2 className="w-4 h-4" /> Xóa Dịch Vụ
+                    </button>
+                 </div>
+                 <div className="bg-[#1f1f1f] border border-gray-800 rounded-xl p-6 flex flex-col items-center text-center space-y-4 relative">
+                    <span className="text-sm font-bold text-white uppercase tracking-widest">Thuê Slot Đánh Giải</span>
+                    <button
+                      onClick={() => updateServiceVisibility({ ...serviceVisibility, showRentSlot: !serviceVisibility.showRentSlot })}
+                      className={`px-6 py-2 w-full rounded-lg font-black uppercase text-xs tracking-widest transition-colors ${serviceVisibility.showRentSlot ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}
+                    >
+                      {serviceVisibility.showRentSlot ? 'Đang Hiện' : 'Đang Ẩn'}
+                    </button>
+                    <button 
+                       onClick={() => showToast('Đây là dịch vụ hệ thống, chỉ có thể Ẩn, không thể xóa.', 'error')}
+                       className="flex items-center justify-center gap-2 w-full py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors text-xs font-bold uppercase"
+                    >
+                       <Trash2 className="w-4 h-4" /> Xóa Dịch Vụ
+                    </button>
+                 </div>
+                 <div className="bg-[#1f1f1f] border border-gray-800 rounded-xl p-6 flex flex-col items-center text-center space-y-4 relative">
+                    <span className="text-sm font-bold text-white uppercase tracking-widest">Cày Thuê Rank</span>
+                    <button
+                      onClick={() => updateServiceVisibility({ ...serviceVisibility, showRankBoost: !serviceVisibility.showRankBoost })}
+                      className={`px-6 py-2 w-full rounded-lg font-black uppercase text-xs tracking-widest transition-colors ${serviceVisibility.showRankBoost ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}
+                    >
+                      {serviceVisibility.showRankBoost ? 'Đang Hiện' : 'Đang Ẩn'}
+                    </button>
+                    <button 
+                       onClick={() => showToast('Đây là dịch vụ hệ thống, chỉ có thể Ẩn, không thể xóa.', 'error')}
+                       className="flex items-center justify-center gap-2 w-full py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors text-xs font-bold uppercase"
+                    >
+                       <Trash2 className="w-4 h-4" /> Xóa Dịch Vụ
+                    </button>
+                 </div>
+                 {customServices.map((service) => (
+                   <div key={service.id} className="bg-[#1f1f1f] border border-gray-800 rounded-xl p-6 flex flex-col items-center text-center space-y-4 relative">
+                      <span className="text-sm font-bold text-white uppercase tracking-widest line-clamp-1">{service.title || 'Dịch vụ chưa đặt tên'}</span>
+                      <button
+                        onClick={() => toggleCustomServiceVisibility(service.id, service.isVisible)}
+                        className={`px-6 py-2 w-full rounded-lg font-black uppercase text-xs tracking-widest transition-colors ${service.isVisible ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}
+                      >
+                        {service.isVisible ? 'Đang Hiện' : 'Đang Ẩn'}
+                      </button>
+                      <button 
+                         onClick={() => handleDeleteCustomService(service.id, service.title)}
+                         className="flex items-center justify-center gap-2 w-full py-2 rounded-lg bg-red-600/10 hover:bg-red-600 hover:text-white text-red-500 transition-colors text-xs font-bold uppercase"
+                      >
+                         <Trash2 className="w-4 h-4" /> Xóa Dịch Vụ
+                      </button>
+                   </div>
+                 ))}
+              </div>
+            </div>
           </div>
         )}
 
@@ -720,6 +841,10 @@ export const Admin: React.FC = () => {
 
         {activeTab === 'ORDERS' && (
           <AdminOrders />
+        )}
+
+        {activeTab === 'SERVICES' && (
+          <ServiceManager />
         )}
       </div>
     </div>

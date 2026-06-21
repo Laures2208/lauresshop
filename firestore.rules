@@ -96,6 +96,16 @@ service cloud.firestore {
       allow create: if isValidServicePrices(incoming());
       allow update: if isValidServicePrices(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['rentPerHour', 'boostBasic', 'boostStar', 'boostCombo1', 'boostCombo2']);
     }
+
+    match /settings/visibility {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /custom_services/{serviceId} {
+      allow read: if true;
+      allow write: if true;
+    }
   }
 }
 

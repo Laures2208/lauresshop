@@ -272,7 +272,16 @@ export const Profile: React.FC = () => {
 
                         {/* Hướng dẫn chi tiết / thông tin tài khoản */}
                         {isAccount && (
-                          <div className="space-y-2">
+                          <div className="space-y-3">
+                            <div className="bg-red-950/40 border border-red-500/50 p-3.5 rounded-lg shadow-[0_0_15px_rgba(220,38,38,0.2)] text-center relative overflow-hidden">
+                               <div className="absolute inset-0 bg-gradient-to-r from-red-600/10 via-transparent to-red-600/10" />
+                               <p className="text-white text-xs font-bold leading-relaxed relative z-10">
+                                 ĐỂ ĐỔI MẬT KHẨU, SỐ ĐIỆN THOẠI, GMAIL TRONG ACC BẠN VỪA MUA.<br />
+                                 HÃY LIÊN HỆ SĐT ZALO CỦA ADMIN ĐỂ ĐƯỢC HỖ TRỢ: <br/>
+                                 <span className="text-yellow-400 text-sm font-black mt-2 inline-block px-3 py-1 bg-black/40 rounded border border-yellow-900/50">0938587108</span>
+                               </p>
+                            </div>
+
                             {credentialsExist ? (
                               <div className="space-y-2">
                                 <p className="text-[11px] text-green-400 font-medium">🎉 Đã có thông tin đăng nhập! Bạn hãy sao chép tài khoản và mật khẩu dưới đây để đăng nhập vào game:</p>

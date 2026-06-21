@@ -40,6 +40,12 @@ export interface ServicePrices {
   boostCombo2: number;
 }
 
+export interface ServiceVisibility {
+  showAccounts: boolean;
+  showRentSlot: boolean;
+  showRankBoost: boolean;
+}
+
 export type CartItemType = 'ACCOUNT' | 'SLOT' | 'BOOST';
 
 export interface CartItem {
